@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel Executivo de Metas</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <style>
+    :root{
+      --bg:#0b1020;
+      --panel:#121933;
+      --panel-2:#182141;
+      --card:#10182f;
+      --text:#edf2ff;
+      --muted:#9fb0d9;
+      --line:#293661;
+      --good:#27c07d;
+      --bad:#f35f6f;
+      --warn:#f6c85f;
+      --accent:#7aa2ff;
+      --shadow:0 10px 30px rgba(0,0,0,.25);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: Inter, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(circle at top right, rgba(122,162,255,.18), transparent 22%),
+        radial-gradient(circle at top left, rgba(39,192,125,.10), transparent 20%),
+        linear-gradient(180deg, #0b1020 0%, #0d1327 100%);
+    }
+    .container{max-width:1450px;margin:0 auto;padding:24px}
+    .hero{
+      display:flex; gap:18px; align-items:flex-start; justify-content:space-between;
+      margin-bottom:18px; flex-wrap:wrap;
+    }
+    .hero h1{margin:0 0 8px;font-size:32px;line-height:1.1}
+    .hero p{margin:0;color:var(--muted);max-width:820px}
+    .chip{
+      background:rgba(122,162,255,.12);
+      border:1px solid rgba(122,162,255,.25);
+      color:#cfe0ff;
+      border-radius:999px;
+      padding:8px 12px;
+      font-size:13px;
+      display:inline-flex; align-items:center; gap:8px;
+    }
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01));
+      border:1px solid var(--line);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .filters{
+      display:grid;
+      grid-template-columns: 1.15fr 1.15fr 1fr 1fr 1fr auto auto;
+      gap:14px;
+      padding:16px;
+      align-items:end;
+    }
+    .field{display:flex;flex-direction:column;gap:8px}
+    .field label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+    .field input,.field select,.field button{
+      background:var(--panel-2);
+      color:var(--text);
+      border:1px solid var(--line);
+      border-radius:12px;
+      padding:12px 14px;
+      min-height:46px;
+      outline:none;
+    }
+    .field button{cursor:pointer;font-weight:600}
+    .field button.secondary{background:#0d1530}
+    .field button:hover{filter:brightness(1.08)}
+    .uploads{
+      display:grid;grid-template-columns:1fr 1fr;gap:14px;padding:0 16px 16px;
+    }
+    .upload-box{
+      background:rgba(255,255,255,.02);
+      border:1px dashed #40528f;
+      border-radius:16px;padding:14px;
+    }
+    .upload-box h3{margin:0 0 8px;font-size:15px}
+    .upload-box p{margin:0 0 12px;color:var(--muted);font-size:13px}
+    .help{
+      padding:0 16px 16px;color:var(--muted);font-size:12px;
+    }
+
+    .cards{
+      display:grid;
+      grid-template-columns:repeat(5, 1fr);
+      gap:14px;
+      margin:18px 0;
+    }
+    .card{
+      background:var(--card);
+      border:1px solid var(--line);
+      border-radius:18px;
+      padding:18px;
+      box-shadow:var(--shadow);
+      min-height:124px;
+    }
+    .card .label{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+    .card .value{font-size:34px;font-weight:800;line-height:1.1;margin-top:10px}
+    .card .sub{font-size:13px;color:var(--muted);margin-top:10px}
+    .good{color:var(--good)} .bad{color:var(--bad)} .warn{color:var(--warn)}
+
+    .grid-2{
+      display:grid;
+      grid-template-columns:1.05fr .95fr;
+      gap:16px;
+      margin-bottom:16px;
+    }
+
+    .section-head{
+      display:flex; align-items:center; justify-content:space-between;
+      padding:16px 16px 0;
+      gap:12px;
+    }
+    .section-head h2{
+      margin:0;font-size:17px;
+    }
+    .section-head .tabs{display:flex;gap:8px;flex-wrap:wrap}
+    .tab{
+      background:#0e1530;border:1px solid var(--line);color:var(--text);
+      border-radius:999px;padding:8px 12px;font-size:12px;cursor:pointer;
+    }
+    .tab.active{background:rgba(122,162,255,.16);border-color:#5071c8}
+    .chart-wrap{padding:12px 16px 16px}
+    .chart-canvas{width:100%;height:340px;background:linear-gradient(180deg, rgba(255,255,255,.015), rgba(255,255,255,.005));border-radius:14px;border:1px solid var(--line)}
+
+    .summary-list{
+      display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:12px 16px 16px;
+    }
+    .mini{
+      background:#10182f;border:1px solid var(--line);border-radius:14px;padding:14px;
+    }
+    .mini .k{font-size:12px;color:var(--muted);margin-bottom:8px}
+    .mini .v{font-size:24px;font-weight:800}
+
+    .tables{
+      display:grid;
+      grid-template-columns:1fr;
+      gap:16px;
+    }
+    .table-wrap{padding:12px 16px 16px; overflow:auto}
+    table{width:100%;border-collapse:collapse;min-width:1000px}
+    th,td{padding:12px 10px;border-bottom:1px solid rgba(255,255,255,.06);font-size:13px;text-align:left}
+    th{
+      position:sticky;top:0;background:#141d3b;z-index:1;
+      color:#d7e3ff;text-transform:uppercase;font-size:11px;letter-spacing:.06em
+    }
+    tbody tr:hover{background:rgba(255,255,255,.025)}
+    .right{text-align:right}
+    .center{text-align:center}
+    .pill{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-width:42px;padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid transparent;
+    }
+    .pill.good{background:rgba(39,192,125,.12);border-color:rgba(39,192,125,.25)}
+    .pill.bad{background:rgba(243,95,111,.12);border-color:rgba(243,95,111,.25)}
+    .pill.warn{background:rgba(246,200,95,.12);border-color:rgba(246,200,95,.25)}
+    .footer-note{padding:14px 16px;color:var(--muted);font-size:12px}
+    .empty{padding:24px 16px;color:var(--muted)}
+    @media (max-width:1200px){
+      .filters{grid-template-columns:1fr 1fr 1fr 1fr}
+      .cards{grid-template-columns:repeat(2,1fr)}
+      .grid-2{grid-template-columns:1fr}
+    }
+    @media (max-width:700px){
+      .container{padding:14px}
+      .hero h1{font-size:26px}
+      .cards{grid-template-columns:1fr}
+      .filters,.uploads{grid-template-columns:1fr}
+      .summary-list{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="hero">
+      <div>
+        <div class="chip">Página executiva • visão do macro para o micro</div>
+        <h1>Painel de Metas — Semanal e Mensal</h1>
+        <p>Carregue seus arquivos, aplique filtros por período e supervisor e acompanhe meta acumulada, realizado, diferença, aproveitamento e consistência de entrega por supervisor e loja.</p>
+      </div>
+      <div class="chip">Versão HTML local</div>
+    </div>
+
+    <div class="panel">
+      <div class="filters">
+        <div class="field">
+          <label>Período inicial</label>
+          <input type="date" id="dateFrom" />
+        </div>
+        <div class="field">
+          <label>Período final</label>
+          <input type="date" id="dateTo" />
+        </div>
+        <div class="field">
+          <label>Supervisor</label>
+          <select id="supervisorFilter"><option value="">Todos</option></select>
+        </div>
+        <div class="field">
+          <label>Regional</label>
+          <select id="regionalFilter"><option value="">Todas</option></select>
+        </div>
+<div class="field">
+          <label>&nbsp;</label>
+          <button id="loadSampleBtn">Carregar exemplo</button>
+        </div>
+        <div class="field">
+          <label>&nbsp;</label>
+          <button class="secondary" id="clearBtn">Limpar dados</button>
+        </div>
+      </div>
+
+      <div class="uploads">
+        <div class="upload-box">
+          <h3>Importar base semanal</h3>
+          <p>Colunas esperadas: Loja, Supervisor, Data Inicial, Data Final, Meta, Realizado. Regional é opcional.</p>
+          <input type="file" id="weeklyFile" accept=".csv" />
+        </div>
+        <div class="upload-box">
+          <h3>Importar base mensal</h3>
+          <p>Colunas esperadas: Loja, Supervisor, Mês, Meta, Realizado. Regional é opcional.</p>
+          <input type="file" id="monthlyFile" accept=".csv" />
+        </div>
+      </div>
+
+      <div class="help">
+        Observação: esta versão HTML funciona de forma 100% local no navegador e importa arquivos em CSV. Se seus dados estiverem em Excel, basta abrir no Excel e salvar cada aba/base como <strong>CSV UTF-8</strong>.
+      </div>
+    </div>
+
+    <div class="cards">
+      <div class="card">
+        <div class="label">Meta acumulada</div>
+        <div class="value" id="cardMeta">R$ 0</div>
+        <div class="sub">Soma das metas no período filtrado</div>
+      </div>
+      <div class="card">
+        <div class="label">Realizado acumulado</div>
+        <div class="value" id="cardRealizado">R$ 0</div>
+        <div class="sub">Soma do realizado no período filtrado</div>
+      </div>
+      <div class="card">
+        <div class="label">Diferença</div>
+        <div class="value" id="cardDiferenca">R$ 0</div>
+        <div class="sub" id="cardDiferencaSub">Realizado - Meta</div>
+      </div>
+      <div class="card">
+        <div class="label">% aproveitamento</div>
+        <div class="value" id="cardAproveitamento">0,0%</div>
+        <div class="sub" id="cardAproveitamentoSub">Metas atingidas / total de metas</div>
+      </div>
+      <div class="card">
+        <div class="label">% entregue</div>
+        <div class="value" id="cardEntregue">0,0%</div>
+        <div class="sub" id="cardEntregueSub">Realizado / Meta</div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Realizado vs Meta</h2>
+          <div class="tabs">
+            <button class="tab active" data-mode="weekly">Semanal</button>
+            <button class="tab" data-mode="monthly">Mensal</button>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="mainChart" class="chart-canvas"></canvas>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <h2>Resumo executivo</h2>
+        </div>
+        <div class="summary-list">
+          <div class="mini">
+            <div class="k" id="miniTotalMetasLabel">Metas analisadas</div>
+            <div class="v" id="miniTotalMetas">0</div>
+          </div>
+          <div class="mini">
+            <div class="k" id="miniAtingidasLabel">Metas atingidas</div>
+            <div class="v" id="miniAtingidas">0</div>
+          </div>
+          <div class="mini">
+            <div class="k" id="miniSupervisoresLabel">Supervisores no filtro</div>
+            <div class="v" id="miniSupervisores">0</div>
+          </div>
+          <div class="mini">
+            <div class="k" id="miniLojasLabel">Lojas no filtro</div>
+            <div class="v" id="miniLojas">0</div>
+          </div>
+        </div>
+        <div class="footer-note" id="contextNote">
+          Sem dados carregados. Use os arquivos CSV ou clique em “Carregar exemplo”.
+        </div>
+      </div>
+    </div>
+
+    <div class="tables">
+      <div class="panel">
+        <div class="section-head">
+          <h2>Tabela mensal</h2>
+        </div>
+        <div class="table-wrap" id="monthlyTableWrap"></div>
+      </div>
+
+      <div class="panel">
+        <div class="section-head">
+          <h2>Tabela semanal</h2>
+        </div>
+        <div class="table-wrap" id="weeklyTableWrap"></div>
+      </div>
+    </div>
+  </div>
+
+  
+  <script>
+    const state = {
+      weeklyRaw: [],
+      monthlyRaw: [],
+      filteredWeekly: [],
+      filteredMonthly: [],
+      currentMode: 'weekly'
+    };
+
+// =========================================================================
+    // 1. INÍCIO DA CONEXÃO COM O SUPABASE
+    // =========================================================================
+
+    // Chaves de acesso que você me passou
+    const supabaseUrl = 'https://emboolpdpwugdvypqkk.supabase.co';
+    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm9vbHBkcHV3dWdkdnlwcWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MDQyMjUsImV4cCI6MjA5MDQ4MDIyNX0.7Y4b23q-0cdw7oVxmYnPoQNHdnHHEmVdyjCRDKqrd3s';
+    
+    // Criando o canal de comunicação com o banco
+    const supabase = window.supabase.createClient(supabaseUrl, supabaseKey);
+
+    // =========================================================================
+    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO
+    // =========================================================================
+    async function carregarDadosDoBanco() {
+      try {
+        // Mostra uma mensagem na tela avisando que está buscando
+        if(el('contextNote')) el('contextNote').textContent = 'Carregando dados do banco...';
+
+        // Vai na tabela 'metas_vendas' e pega tudo
+        const { data, error } = await supabase
+          .from('metas_vendas')
+          .select('*');
+
+        // Se der erro, ele para aqui
+        if (error) throw error;
+
+        // Se der certo, ele joga os dados nas variáveis do seu painel!
+        state.weeklyRaw = data;
+        state.monthlyRaw = data; 
+
+        // Atualiza a tela com os dados novos
+        updateFilterOptions();
+        applyFilters();
+        renderAll();
+
+        if(el('contextNote')) el('contextNote').textContent = 'Dados do banco carregados com sucesso!';
+
+      } catch (erro) {
+        console.error("Deu ruim ao buscar no Supabase:", erro);
+        if(el('contextNote')) el('contextNote').textContent = 'Erro ao carregar dados da nuvem.';
+      }
+    }
+
+    // =========================================================================
+    // 3. FAZ O PAINEL LIGAR AUTOMATICAMENTE AO ABRIR A PÁGINA
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      carregarDadosDoBanco();
+    });
+
+    const el = (id) => document.getElementById(id);
+
+    function brl(value){
+      return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(Number(value || 0));
+    }
+    function pct(value){
+      return new Intl.NumberFormat('pt-BR',{style:'percent',minimumFractionDigits:1,maximumFractionDigits:1}).format(Number(value || 0));
+    }
+    function num(value){
+      return new Intl.NumberFormat('pt-BR').format(Number(value || 0));
+    }
+
+    function parseNumber(v){
+      if(v === null || v === undefined) return 0;
+      if(typeof v === 'number') return v;
+      let s = String(v).trim();
+      if(!s) return 0;
+      s = s.replace(/\s/g,'');
+      if(s.includes(',') && s.includes('.')){
+        if(s.lastIndexOf(',') > s.lastIndexOf('.')){
+          s = s.replace(/\./g,'').replace(',', '.');
+        } else {
+          s = s.replace(/,/g,'');
+        }
+      } else if (s.includes(',')) {
+        s = s.replace('.', '').replace(',', '.');
+      }
+      s = s.replace(/[^\d.-]/g,'');
+      const n = Number(s);
+      return isNaN(n) ? 0 : n;
+    }
+
+    function parseDate(v){
+      if(!v) return null;
+      if(v instanceof Date && !isNaN(v)) return v;
+      let s = String(v).trim();
+      if(!s) return null;
+      if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return new Date(s + 'T00:00:00');
+      if(/^\d{2}\/\d{2}\/\d{4}$/.test(s)){
+        const [d,m,y] = s.split('/');
+        return new Date(`${y}-${m}-${d}T00:00:00`);
+      }
+      if(/^\d{2}-\d{2}-\d{4}$/.test(s)){
+        const [d,m,y] = s.split('-');
+        return new Date(`${y}-${m}-${d}T00:00:00`);
+      }
+      const dt = new Date(s);
+      return isNaN(dt) ? null : dt;
+    }
+
+    function parseMonthToDate(v){
+      if(!v) return null;
+      let s = String(v).trim();
+      if(!s) return null;
+      if(/^\d{4}-\d{2}$/.test(s)) return new Date(s + '-01T00:00:00');
+      if(/^\d{2}\/\d{4}$/.test(s)){
+        const [m,y] = s.split('/');
+        return new Date(`${y}-${m}-01T00:00:00`);
+      }
+      if(/^\d{2}-\d{4}$/.test(s)){
+        const [m,y] = s.split('-');
+        return new Date(`${y}-${m}-01T00:00:00`);
+      }
+      const meses = {
+        jan:1, janeiro:1, feb:2, fev:2, fevereiro:2, mar:3, março:3, marco:3, apr:4, abr:4, abril:4,
+        may:5, mai:5, maio:5, jun:6, junho:6, jul:7, julho:7, aug:8, ago:8, agosto:8, sep:9, set:9, setembro:9,
+        oct:10, out:10, outubro:10, nov:11, novembro:11, dec:12, dez:12, dezembro:12
+      };
+      const low = s.toLowerCase();
+      const match = low.match(/([a-zçãé]+)[\/\s-]*(\d{4})/i);
+      if(match && meses[match[1]]){
+        const m = String(meses[match[1]]).padStart(2,'0');
+        return new Date(`${match[2]}-${m}-01T00:00:00`);
+      }
+      if(/^\d{4}\/\d{2}$/.test(s)){
+        const [y,m] = s.split('/');
+        return new Date(`${y}-${m}-01T00:00:00`);
+      }
+      const dt = new Date(s);
+      if(!isNaN(dt)) return new Date(dt.getFullYear(), dt.getMonth(), 1);
+      return null;
+    }
+
+    function normalizeKey(s){
+      return String(s || '')
+        .trim()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g,'')
+        .toLowerCase()
+        .replace(/\s+/g,' ')
+        .replace(/[^\w\s]/g,'');
+    }
+
+    function csvToRows(text){
+      const lines = text.replace(/\r/g,'').split('\n').filter(Boolean);
+      if(!lines.length) return [];
+      let delimiter = ';';
+      const first = lines[0];
+      if((first.match(/;/g)||[]).length < (first.match(/,/g)||[]).length) delimiter = ',';
+
+      const parseLine = (line) => {
+        const out = [];
+        let cur = '';
+        let inQuotes = false;
+        for(let i=0;i<line.length;i++){
+          const ch = line[i];
+          if(ch === '"'){
+            if(inQuotes && line[i+1] === '"'){
+              cur += '"'; i++;
+            } else {
+              inQuotes = !inQuotes;
+            }
+          } else if(ch === delimiter && !inQuotes){
+            out.push(cur); cur = '';
+          } else {
+            cur += ch;
+          }
+        }
+        out.push(cur);
+        return out.map(v => v.trim());
+      };
+
+      const header = parseLine(lines[0]).map(h => normalizeKey(h));
+      const rows = [];
+      for(let i=1;i<lines.length;i++){
+        const cols = parseLine(lines[i]);
+        if(cols.every(c => !String(c).trim())) continue;
+        const obj = {};
+        header.forEach((h,idx) => obj[h] = cols[idx] ?? '');
+        rows.push(obj);
+      }
+      return rows;
+    }
+
+    function extractField(obj, aliases){
+      for(const alias of aliases){
+        const k = normalizeKey(alias);
+        if(Object.prototype.hasOwnProperty.call(obj, k)) return obj[k];
+      }
+      return '';
+    }
+
+    function formatDate(d){
+      return new Intl.DateTimeFormat('pt-BR').format(d);
+    }
+    function formatMonth(d){
+      return new Intl.DateTimeFormat('pt-BR',{month:'short',year:'numeric'}).format(d);
+    }
+    function monthKey(d){
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}`;
+    }
+    function isoDate(d){
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    function mapWeekly(rows){
+      return rows.map((r, idx) => {
+        const start = parseDate(extractField(r, ['data inicial','inicio','data inicio']));
+        const end = parseDate(extractField(r, ['data final','fim','data fim']));
+        return {
+          id: 'W' + idx,
+          loja: extractField(r, ['loja','filial']) || 'Sem loja',
+          supervisor: extractField(r, ['supervisor']) || 'Sem supervisor',
+          start,
+          end,
+          periodDate: start || end,
+          meta: parseNumber(extractField(r, ['meta'])),
+          realizado: parseNumber(extractField(r, ['realizado','faturamento','realizado acumulado'])),
+          periodLabel: start && end ? `${formatDate(start)} a ${formatDate(end)}` : (start ? formatDate(start) : 'Sem período')
+        };
+      }).filter(r => r.periodDate);
+    }
+
+    function mapMonthly(rows){
+      return rows.map((r, idx) => {
+        const m = parseMonthToDate(extractField(r, ['mes','mês','ano mes','anomes']));
+        return {
+          id: 'M' + idx,
+          loja: extractField(r, ['loja','filial']) || 'Sem loja',
+          supervisor: extractField(r, ['supervisor']) || 'Sem supervisor',
+          monthDate: m,
+          periodDate: m,
+          meta: parseNumber(extractField(r, ['meta'])),
+          realizado: parseNumber(extractField(r, ['realizado','faturamento','realizado acumulado'])),
+          periodLabel: m ? formatMonth(m) : 'Sem período'
+        };
+      }).filter(r => r.periodDate);
+    }
+
+    function updateFilterOptions(){
+      const supSet = new Set([...state.weeklyRaw, ...state.monthlyRaw].map(r => r.supervisor).filter(Boolean));
+      const sup = el('supervisorFilter');
+      const supVal = sup.value;
+      sup.innerHTML = '<option value="">Todos</option>' + [...supSet].sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      sup.value = [...sup.options].some(o => o.value === supVal) ? supVal : '';
+
+      const allDates = [...state.weeklyRaw.map(r => r.periodDate), ...state.monthlyRaw.map(r => r.periodDate)]
+        .filter(Boolean)
+        .sort((a,b)=>a-b);
+
+      if(allDates.length){
+        if(!el('dateFrom').value) el('dateFrom').value = isoDate(allDates[0]);
+        if(!el('dateTo').value) el('dateTo').value = isoDate(allDates[allDates.length-1]);
+      }
+    }
+
+    function applyFilters(){
+      const from = parseDate(el('dateFrom').value);
+      const to = parseDate(el('dateTo').value);
+      const supervisor = el('supervisorFilter').value;
+
+      const filterFn = (r) => {
+        const dateOk = (!from || r.periodDate >= from) && (!to || r.periodDate <= to);
+        const supOk = !supervisor || r.supervisor === supervisor;
+        return dateOk && supOk;
+      };
+
+      state.filteredWeekly = state.weeklyRaw.filter(filterFn);
+      state.filteredMonthly = state.monthlyRaw.filter(filterFn);
+
+      renderAll();
+    }
+
+    function summarize(records){
+      const meta = records.reduce((s,r)=>s+r.meta,0);
+      const realizado = records.reduce((s,r)=>s+r.realizado,0);
+      const qtdMetas = records.length;
+      const qtdAtingidas = records.filter(r => r.realizado >= r.meta && r.meta > 0).length;
+      const entregue = meta ? realizado / meta : 0;
+      const aproveitamento = qtdMetas ? qtdAtingidas / qtdMetas : 0;
+      return {meta, realizado, diferenca: realizado - meta, qtdMetas, qtdAtingidas, entregue, aproveitamento};
+    }
+
+    function aggregateByStore(records){
+      const map = new Map();
+      records.forEach(r => {
+        const key = `${r.supervisor}|||${r.loja}`;
+        if(!map.has(key)){
+          map.set(key, {supervisor:r.supervisor, loja:r.loja, meta:0, realizado:0, qtdMetas:0, qtdAtingidas:0});
+        }
+        const row = map.get(key);
+        row.meta += r.meta;
+        row.realizado += r.realizado;
+        row.qtdMetas += 1;
+        if(r.realizado >= r.meta && r.meta > 0) row.qtdAtingidas += 1;
+      });
+      return [...map.values()].map(r => ({
+        ...r,
+        diferenca: r.realizado - r.meta,
+        pctEntregue: r.meta ? r.realizado / r.meta : 0,
+        aproveitamento: r.qtdMetas ? r.qtdAtingidas / r.qtdMetas : 0
+      })).sort((a,b)=> b.aproveitamento - a.aproveitamento || b.pctEntregue - a.pctEntregue || b.realizado - a.realizado);
+    }
+
+    function aggregateChart(records, mode){
+      const map = new Map();
+      records.forEach(r => {
+        const key = mode === 'monthly' ? monthKey(r.periodDate) : isoDate(r.periodDate);
+        if(!map.has(key)) map.set(key, {
+          key,
+          label: mode === 'monthly' ? formatMonth(r.periodDate) : formatDate(r.periodDate),
+          meta:0,
+          realizado:0,
+          date:r.periodDate
+        });
+        const row = map.get(key);
+        row.meta += r.meta;
+        row.realizado += r.realizado;
+      });
+      return [...map.values()].sort((a,b)=>a.date-b.date);
+    }
+
+    function metricClass(value){
+      const v = Number(value||0);
+      return v >= 1 ? 'good' : v >= .9 ? 'warn' : 'bad';
+    }
+
+    function getActiveRecords(){
+      return state.currentMode === 'monthly' ? state.filteredMonthly : state.filteredWeekly;
+    }
+
+    function renderCards(){
+      const activeRecords = getActiveRecords();
+      const total = summarize(activeRecords);
+      const modePlural = state.currentMode === 'monthly' ? 'mensais' : 'semanais';
+      const modeSingular = state.currentMode === 'monthly' ? 'mensal' : 'semanal';
+
+      el('cardMeta').textContent = brl(total.meta);
+      el('cardRealizado').textContent = brl(total.realizado);
+
+      const diffEl = el('cardDiferenca');
+      diffEl.textContent = brl(total.diferenca);
+      diffEl.className = 'value ' + (total.diferenca >= 0 ? 'good' : 'bad');
+
+      const apEl = el('cardAproveitamento');
+      apEl.textContent = pct(total.aproveitamento);
+      apEl.className = 'value ' + metricClass(total.aproveitamento);
+
+      const enEl = el('cardEntregue');
+      enEl.textContent = pct(total.entregue);
+      enEl.className = 'value ' + metricClass(total.entregue);
+
+      el('cardDiferencaSub').textContent = `Realizado - Meta (${modePlural})`;
+      el('cardAproveitamentoSub').textContent = `Metas ${modePlural} atingidas / total de metas`;
+      el('cardEntregueSub').textContent = `Realizado / Meta (${modePlural})`;
+
+      if(el('miniTotalMetasLabel')) el('miniTotalMetasLabel').textContent = `Metas ${modePlural}`;
+      if(el('miniAtingidasLabel')) el('miniAtingidasLabel').textContent = `Metas ${modePlural} atingidas`;
+      if(el('miniSupervisoresLabel')) el('miniSupervisoresLabel').textContent = `Supervisores na visão ${modeSingular}`;
+      if(el('miniLojasLabel')) el('miniLojasLabel').textContent = `Lojas na visão ${modeSingular}`;
+
+      el('miniTotalMetas').textContent = num(total.qtdMetas);
+      el('miniAtingidas').textContent = num(total.qtdAtingidas);
+      el('miniSupervisores').textContent = num(new Set(activeRecords.map(r => r.supervisor)).size);
+      el('miniLojas').textContent = num(new Set(activeRecords.map(r => r.loja)).size);
+
+      const from = el('dateFrom').value ? formatDate(parseDate(el('dateFrom').value)) : 'início';
+      const to = el('dateTo').value ? formatDate(parseDate(el('dateTo').value)) : 'fim';
+      const sup = el('supervisorFilter').value || 'todos os supervisores';
+      el('contextNote').textContent = `Período analisado: ${from} até ${to}. Filtro atual: ${sup}. Visão ativa: ${modeSingular}.`;
+    }
+
+    function renderTable(containerId, records, isWeekly){
+      const rows = aggregateByStore(records);
+      const container = el(containerId);
+      if(!rows.length){
+        container.innerHTML = '<div class="empty">Nenhum dado encontrado para os filtros aplicados.</div>';
+        return;
+      }
+      const periodLabel = isWeekly ? '% entregue semanal' : '% entregue mensal';
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Supervisor</th>
+              <th>Loja</th>
+              <th class="right">${periodLabel}</th>
+              <th class="right">Meta acumulada</th>
+              <th class="right">Realizado acumulado</th>
+              <th class="right">Diferença</th>
+              <th class="center">Qtd metas</th>
+              <th class="center">Qtd atingida</th>
+              <th class="right">Total aproveitado</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${escapeHtml(r.supervisor)}</td>
+                <td>${escapeHtml(r.loja)}</td>
+                <td class="right"><span class="pill ${metricClass(r.pctEntregue)}">${pct(r.pctEntregue)}</span></td>
+                <td class="right">${brl(r.meta)}</td>
+                <td class="right">${brl(r.realizado)}</td>
+                <td class="right ${r.diferenca >= 0 ? 'good' : 'bad'}">${brl(r.diferenca)}</td>
+                <td class="center">${num(r.qtdMetas)}</td>
+                <td class="center">${num(r.qtdAtingidas)}</td>
+                <td class="right"><span class="pill ${metricClass(r.aproveitamento)}">${pct(r.aproveitamento)}</span></td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = html;
+    }
+
+    function drawChart(records, mode){
+      const canvas = el('mainChart');
+      const ratio = window.devicePixelRatio || 1;
+      const rect = canvas.getBoundingClientRect();
+      canvas.width = Math.max(300, rect.width * ratio);
+      canvas.height = Math.max(220, rect.height * ratio);
+      const ctx = canvas.getContext('2d');
+      ctx.scale(ratio, ratio);
+
+      const w = rect.width, h = rect.height;
+      ctx.clearRect(0,0,w,h);
+
+      const data = aggregateChart(records, mode);
+      if(!data.length){
+        ctx.fillStyle = '#9fb0d9';
+        ctx.font = '14px Inter, Segoe UI, sans-serif';
+        ctx.fillText('Sem dados para exibir no gráfico.', 20, 40);
+        return;
+      }
+
+      const margin = {top:20,right:20,bottom:48,left:58};
+      const innerW = w - margin.left - margin.right;
+      const innerH = h - margin.top - margin.bottom;
+      const maxVal = Math.max(...data.flatMap(d => [d.meta, d.realizado]), 1) * 1.12;
+      const barWidth = Math.max(14, innerW / data.length * 0.42);
+      const stepX = data.length > 1 ? innerW / data.length : innerW / 2;
+
+      ctx.strokeStyle = 'rgba(255,255,255,.08)';
+      ctx.lineWidth = 1;
+      ctx.font = '12px Inter, Segoe UI, sans-serif';
+      ctx.fillStyle = '#9fb0d9';
+
+      for(let i=0;i<=4;i++){
+        const y = margin.top + innerH - (innerH/4)*i;
+        ctx.beginPath();
+        ctx.moveTo(margin.left, y);
+        ctx.lineTo(w - margin.right, y);
+        ctx.stroke();
+
+        const label = brl(maxVal * i / 4);
+        ctx.fillText(label, 8, y + 4);
+      }
+
+      data.forEach((d, i) => {
+        const x = margin.left + stepX * i + (stepX - barWidth) / 2;
+        const barH = (d.realizado / maxVal) * innerH;
+        const y = margin.top + innerH - barH;
+        ctx.fillStyle = 'rgba(122,162,255,.75)';
+        roundRect(ctx, x, y, barWidth, barH, 8, true, false);
+      });
+
+      ctx.strokeStyle = '#27c07d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      data.forEach((d, i) => {
+        const cx = margin.left + stepX * i + stepX / 2;
+        const cy = margin.top + innerH - (d.meta / maxVal) * innerH;
+        if(i === 0) ctx.moveTo(cx, cy); else ctx.lineTo(cx, cy);
+      });
+      ctx.stroke();
+
+      data.forEach((d, i) => {
+        const cx = margin.left + stepX * i + stepX / 2;
+        const cy = margin.top + innerH - (d.meta / maxVal) * innerH;
+        ctx.fillStyle = '#27c07d';
+        ctx.beginPath();
+        ctx.arc(cx, cy, 4, 0, Math.PI*2);
+        ctx.fill();
+
+        ctx.save();
+        ctx.translate(cx, h - 18);
+        ctx.rotate(-0.3);
+        ctx.fillStyle = '#9fb0d9';
+        ctx.font = '11px Inter, Segoe UI, sans-serif';
+        const label = mode === 'monthly' ? d.label.replace('.', '') : d.label.slice(0,5);
+        ctx.fillText(label, -16, 0);
+        ctx.restore();
+      });
+
+      ctx.fillStyle = 'rgba(122,162,255,.75)';
+      roundRect(ctx, w - 200, 14, 16, 10, 4, true, false);
+      ctx.fillStyle = '#d9e5ff';
+      ctx.fillText('Realizado', w - 178, 24);
+
+      ctx.strokeStyle = '#27c07d';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(w - 104, 20);
+      ctx.lineTo(w - 86, 20);
+      ctx.stroke();
+      ctx.fillStyle = '#d9e5ff';
+      ctx.fillText('Meta', w - 78, 24);
+    }
+
+    function roundRect(ctx, x, y, width, height, radius, fill, stroke) {
+      if (typeof radius === 'undefined') radius = 5;
+      if (typeof radius === 'number') radius = {tl: radius, tr: radius, br: radius, bl: radius};
+      ctx.beginPath();
+      ctx.moveTo(x + radius.tl, y);
+      ctx.lineTo(x + width - radius.tr, y);
+      ctx.quadraticCurveTo(x + width, y, x + width, y + radius.tr);
+      ctx.lineTo(x + width, y + height - radius.br);
+      ctx.quadraticCurveTo(x + width, y + height, x + width - radius.br, y + height);
+      ctx.lineTo(x + radius.bl, y + height);
+      ctx.quadraticCurveTo(x, y + height, x, y + height - radius.bl);
+      ctx.lineTo(x, y + radius.tl);
+      ctx.quadraticCurveTo(x, y, x + radius.tl, y);
+      ctx.closePath();
+      if (fill) ctx.fill();
+      if (stroke) ctx.stroke();
+    }
+
+    function renderAll(){
+      renderCards();
+      renderTable('monthlyTableWrap', state.filteredMonthly, false);
+      renderTable('weeklyTableWrap', state.filteredWeekly, true);
+      drawChart(getActiveRecords(), state.currentMode);
+    }
+
+    function escapeHtml(str){
+      return String(str ?? '')
+        .replace(/&/g,'&amp;')
+        .replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;')
+        .replace(/'/g,'&#039;');
+    }
+
+    function loadSampleData(){
+      const weeklySample = [
+        {loja:'Moema', supervisor:'Benatti', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:180000, realizado:192000, periodLabel:'02/03/2026 a 08/03/2026'},
+        {loja:'Moema', supervisor:'Benatti', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:185000, realizado:176000, periodLabel:'09/03/2026 a 15/03/2026'},
+        {loja:'Tatuapé', supervisor:'Benatti', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:165000, realizado:171000, periodLabel:'02/03/2026 a 08/03/2026'},
+        {loja:'Tatuapé', supervisor:'Benatti', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:170000, realizado:181000, periodLabel:'09/03/2026 a 15/03/2026'},
+        {loja:'Campinas', supervisor:'Ícaro', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:210000, realizado:198000, periodLabel:'02/03/2026 a 08/03/2026'},
+        {loja:'Campinas', supervisor:'Ícaro', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:212000, realizado:225000, periodLabel:'09/03/2026 a 15/03/2026'},
+        {loja:'Sorocaba', supervisor:'Ícaro', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:152000, realizado:149000, periodLabel:'02/03/2026 a 08/03/2026'},
+        {loja:'Sorocaba', supervisor:'Ícaro', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:158000, realizado:161000, periodLabel:'09/03/2026 a 15/03/2026'}
+      ];
+
+      const monthlySample = [
+        {loja:'Moema', supervisor:'Benatti', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:720000, realizado:738000, periodLabel:'jan/2026'},
+        {loja:'Moema', supervisor:'Benatti', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:690000, realizado:674000, periodLabel:'fev/2026'},
+        {loja:'Tatuapé', supervisor:'Benatti', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:645000, realizado:662000, periodLabel:'jan/2026'},
+        {loja:'Tatuapé', supervisor:'Benatti', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:652000, realizado:670000, periodLabel:'fev/2026'},
+        {loja:'Campinas', supervisor:'Ícaro', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:830000, realizado:804000, periodLabel:'jan/2026'},
+        {loja:'Campinas', supervisor:'Ícaro', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:810000, realizado:835000, periodLabel:'fev/2026'},
+        {loja:'Sorocaba', supervisor:'Ícaro', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:590000, realizado:571000, periodLabel:'jan/2026'},
+        {loja:'Sorocaba', supervisor:'Ícaro', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:610000, realizado:622000, periodLabel:'fev/2026'}
+      ];
+
+      state.weeklyRaw = weeklySample;
+      state.monthlyRaw = monthlySample;
+      state.currentMode = 'weekly';
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === state.currentMode));
+      el('dateFrom').value = '2026-01-01';
+      el('dateTo').value = '2026-03-31';
+      updateFilterOptions();
+      applyFilters();
+    }
+
+    async function handleCsvUpload(file, type){
+      const text = await file.text();
+      const rows = csvToRows(text);
+      if(type === 'weekly'){
+        state.weeklyRaw = mapWeekly(rows);
+      } else {
+        state.monthlyRaw = mapMonthly(rows);
+      }
+      updateFilterOptions();
+      applyFilters();
+    }
+
+    el('weeklyFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(file) handleCsvUpload(file, 'weekly');
+    });
+
+    el('monthlyFile').addEventListener('change', (e) => {
+      const file = e.target.files[0];
+      if(file) handleCsvUpload(file, 'monthly');
+    });
+
+    ['dateFrom','dateTo','supervisorFilter'].forEach(id => {
+      el(id).addEventListener('change', applyFilters);
+    });
+
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        state.currentMode = tab.dataset.mode;
+        document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t === tab));
+        renderAll();
+      });
+    });
+
+    el('loadSampleBtn').addEventListener('click', loadSampleData);
+
+    el('clearBtn').addEventListener('click', () => {
+      state.weeklyRaw = [];
+      state.monthlyRaw = [];
+      state.filteredWeekly = [];
+      state.filteredMonthly = [];
+      state.currentMode = 'weekly';
+      el('weeklyFile').value = '';
+      el('monthlyFile').value = '';
+      el('dateFrom').value = '';
+      el('dateTo').value = '';
+      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === state.currentMode));
+      updateFilterOptions();
+      renderAll();
+      el('contextNote').textContent = 'Dados limpos. Carregue novas bases para continuar.';
+    });
+
+    renderAll();
+  </script>
+
+</body>
+</html>
