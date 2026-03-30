@@ -346,7 +346,7 @@
     const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // =========================================================================
-    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (VERSÃO BLINDADA)
+    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (COM BARREIRA DE FOGO)
     // =========================================================================
     async function carregarDadosDoBanco() {
       try {
@@ -358,32 +358,29 @@
 
         if (error) throw error;
 
-        console.log("Dados puros recebidos:", data.length, "linhas.");
+        console.log("1. Dados puros recebidos:", data.length, "linhas.");
 
         // ---------------------------------------------------------------------
-        // 🔄 O TRADUTOR INTELIGENTE COM FILTRO ANTI-FANTASMAS
+        // 🔄 TRADUTOR BLINDADO COM BARREIRA DE FOGO
         // ---------------------------------------------------------------------
         const dadosPadronizados = data
-          // 1. FILTRO: Só deixa passar a linha se ela tiver Filial e Data de Inicio
-          .filter(linha => {
-            const temInicio = linha.Inicio || linha.inicio;
-            const temFilial = linha.Filial || linha.filial;
-            return temInicio && temFilial; // Se algum for vazio, a linha é ignorada
-          })
-          // 2. MAPA: Formata quem passou no filtro
+          // 1. MAPA: Padroniza todas as linhas primeiro
           .map(linha => {
-            // Pega os dados e limpa espaços invisíveis nas pontas (.trim())
             let dataInicio = String(linha.Inicio || linha.inicio || '').trim();
             let dataFim = String(linha.Fim || linha.fim || '').trim();
 
-            // Inverte a data de americano para brasileiro (se precisar)
+            // Inverte a data caso o Supabase tenha guardado como YYYY-MM-DD
             if (dataInicio.includes('-')) {
-              const [ano, mes, dia] = dataInicio.split('T')[0].split('-');
-              dataInicio = `${dia}/${mes}/${ano}`;
+              const partes = dataInicio.split('T')[0].split('-');
+              if (partes.length === 3 && partes[0].length === 4) {
+                 dataInicio = `${partes[2]}/${partes[1]}/${partes[0]}`; // Fica DD/MM/YYYY
+              }
             }
             if (dataFim.includes('-')) {
-              const [ano, mes, dia] = dataFim.split('T')[0].split('-');
-              dataFim = `${dia}/${mes}/${ano}`;
+              const partes = dataFim.split('T')[0].split('-');
+              if (partes.length === 3 && partes[0].length === 4) {
+                 dataFim = `${partes[2]}/${partes[1]}/${partes[0]}`;
+              }
             }
 
             return {
@@ -394,11 +391,19 @@
               Meta: String(linha.Meta || linha.meta || '0').trim(),
               Realizado: String(linha.Realizado || linha.realizado || '0').trim()
             };
+          })
+          // 2. FILTRO BARREIRA DE FOGO: Só passa quem for data perfeita!
+          .filter(linha => {
+            // Essa fórmula maluca testa se o texto tem exatos 2 números / 2 números / 4 números
+            const formatoDataCerta = /^\d{2}\/\d{2}\/\d{4}$/; 
+            
+            // Retorna TRUE (deixa passar) só se Inicio e Fim forem datas certinhas
+            return formatoDataCerta.test(linha.Inicio) && formatoDataCerta.test(linha.Fim);
           });
 
-        console.log("Dados limpos e traduzidos:", dadosPadronizados.length, "linhas.");
+        console.log("2. Dados limpos e aprovados:", dadosPadronizados.length, "linhas.");
 
-        // Entrega os dados para o painel
+        // Entrega os dados blindados para o painel
         state.weeklyRaw = dadosPadronizados;
         state.monthlyRaw = dadosPadronizados; 
 
