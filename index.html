@@ -345,11 +345,8 @@
     // Criando o canal de comunicação com o banco
     const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
-    // =========================================================================
-    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO
-    // =========================================================================
-    // =========================================================================
-    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (ATUALIZADA)
+// =========================================================================
+    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (VERSÃO BLINDADA)
     // =========================================================================
     async function carregarDadosDoBanco() {
       try {
@@ -361,24 +358,42 @@
 
         if (error) throw error;
 
-        console.log("Dados puros do banco:", data);
+        console.log("Dados puros do banco (605 linhas prontas!):", data);
 
         // ---------------------------------------------------------------------
-        // 🔄 O TRADUTOR: Padronizando as colunas para o seu código entender
+        // 🔄 O TRADUTOR INTELIGENTE: Arruma Datas e Dinheiro
         // ---------------------------------------------------------------------
         const dadosPadronizados = data.map(linha => {
+          
+          // 1. Pega as datas do banco
+          let dataInicio = linha.Inicio || linha.inicio || '';
+          let dataFim = linha.Fim || linha.fim || '';
+
+          // 2. Transforma YYYY-MM-DD para DD/MM/YYYY (Padrão do seu CSV)
+          if (dataInicio.includes('-')) {
+            const dataPura = dataInicio.split('T')[0]; // Remove horas se houver
+            const [ano, mes, dia] = dataPura.split('-');
+            dataInicio = `${dia}/${mes}/${ano}`;
+          }
+          if (dataFim.includes('-')) {
+            const dataPura = dataFim.split('T')[0]; 
+            const [ano, mes, dia] = dataPura.split('-');
+            dataFim = `${dia}/${mes}/${ano}`;
+          }
+
+          // 3. Monta a caixinha do jeito exato que o seu painel precisa
           return {
-            // Pega o dado venha ele em maiúsculo (Filial) ou minúsculo (filial)
-            Filial: linha.Filial || linha.filial || '',
-            Supervisor: linha.Supervisor || linha.supervisor || '',
-            Inicio: linha.Inicio || linha.inicio || '',
-            Fim: linha.Fim || linha.fim || '',
-            Meta: linha.Meta || linha.meta || '0',
-            Realizado: linha.Realizado || linha.realizado || '0'
+            Filial: String(linha.Filial || linha.filial || ''),
+            Supervisor: String(linha.Supervisor || linha.supervisor || ''),
+            Inicio: dataInicio,
+            Fim: dataFim,
+            // O String() garante que mesmo se o banco mandar número puro, vire texto
+            Meta: String(linha.Meta || linha.meta || '0'), 
+            Realizado: String(linha.Realizado || linha.realizado || '0')
           };
         });
 
-        // Em vez de passar o 'data' puro, passamos os nossos dados traduzidos!
+        // Entrega os dados traduzidos para o painel
         state.weeklyRaw = dadosPadronizados;
         state.monthlyRaw = dadosPadronizados; 
 
