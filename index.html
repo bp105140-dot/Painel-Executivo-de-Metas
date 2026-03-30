@@ -363,35 +363,44 @@
         // ---------------------------------------------------------------------
         // 🔄 TRADUTOR BLINDADO COM BARREIRA DE FOGO
         // ---------------------------------------------------------------------
-        const dadosPadronizados = data
-          // 1. MAPA: Padroniza todas as linhas primeiro
-          .map(linha => {
-            let dataInicio = String(linha.Inicio || linha.inicio || '').trim();
-            let dataFim = String(linha.Fim || linha.fim || '').trim();
+        const dadosPadronizados = data.map((linha, idx) => {
 
-            // Inverte a data caso o Supabase tenha guardado como YYYY-MM-DD
-            if (dataInicio.includes('-')) {
-              const partes = dataInicio.split('T')[0].split('-');
-              if (partes.length === 3 && partes[0].length === 4) {
-                 dataInicio = `${partes[2]}/${partes[1]}/${partes[0]}`; // Fica DD/MM/YYYY
-              }
-            }
-            if (dataFim.includes('-')) {
-              const partes = dataFim.split('T')[0].split('-');
-              if (partes.length === 3 && partes[0].length === 4) {
-                 dataFim = `${partes[2]}/${partes[1]}/${partes[0]}`;
-              }
-            }
+  let dataInicio = linha.Inicio || linha.inicio || '';
+  let dataFim = linha.Fim || linha.fim || '';
 
-            return {
-              Filial: String(linha.Filial || linha.filial || '').trim(),
-              Supervisor: String(linha.Supervisor || linha.supervisor || '').trim(),
-              Inicio: dataInicio,
-              Fim: dataFim,
-              Meta: String(linha.Meta || linha.meta || '0').trim(),
-              Realizado: String(linha.Realizado || linha.realizado || '0').trim()
-            };
-          })
+  if (dataInicio.includes('-')) {
+    const dataPura = dataInicio.split('T')[0];
+    const [ano, mes, dia] = dataPura.split('-');
+    dataInicio = `${dia}/${mes}/${ano}`;
+  }
+
+  if (dataFim.includes('-')) {
+    const dataPura = dataFim.split('T')[0];
+    const [ano, mes, dia] = dataPura.split('-');
+    dataFim = `${dia}/${mes}/${ano}`;
+  }
+
+  // 🚨 AQUI ESTÁ O PULO DO GATO
+  const startDate = parseDate(dataInicio);
+  const endDate = parseDate(dataFim);
+
+  return {
+    id: 'W' + idx,
+    loja: String(linha.Filial || linha.filial || ''),
+    supervisor: String(linha.Supervisor || linha.supervisor || ''),
+    
+    start: startDate,
+    end: endDate,
+    periodDate: startDate || endDate, // 🔥 ESSENCIAL
+    
+    meta: parseNumber(linha.Meta || linha.meta),
+    realizado: parseNumber(linha.Realizado || linha.realizado),
+
+    periodLabel: startDate && endDate 
+      ? `${formatDate(startDate)} a ${formatDate(endDate)}`
+      : 'Sem período'
+  };
+});
           // 2. FILTRO BARREIRA DE FOGO: Só passa quem for data perfeita!
           .filter(linha => {
             // Essa fórmula maluca testa se o texto tem exatos 2 números / 2 números / 4 números
