@@ -358,46 +358,51 @@
 
         if (error) throw error;
 
-        console.log("Dados puros do banco (605 linhas prontas!):", data);
+        console.log("Dados puros recebidos:", data.length, "linhas.");
 
         // ---------------------------------------------------------------------
-        // 🔄 O TRADUTOR INTELIGENTE: Arruma Datas e Dinheiro
+        // 🔄 O TRADUTOR INTELIGENTE COM FILTRO ANTI-FANTASMAS
         // ---------------------------------------------------------------------
-        const dadosPadronizados = data.map(linha => {
-          
-          // 1. Pega as datas do banco
-          let dataInicio = linha.Inicio || linha.inicio || '';
-          let dataFim = linha.Fim || linha.fim || '';
+        const dadosPadronizados = data
+          // 1. FILTRO: Só deixa passar a linha se ela tiver Filial e Data de Inicio
+          .filter(linha => {
+            const temInicio = linha.Inicio || linha.inicio;
+            const temFilial = linha.Filial || linha.filial;
+            return temInicio && temFilial; // Se algum for vazio, a linha é ignorada
+          })
+          // 2. MAPA: Formata quem passou no filtro
+          .map(linha => {
+            // Pega os dados e limpa espaços invisíveis nas pontas (.trim())
+            let dataInicio = String(linha.Inicio || linha.inicio || '').trim();
+            let dataFim = String(linha.Fim || linha.fim || '').trim();
 
-          // 2. Transforma YYYY-MM-DD para DD/MM/YYYY (Padrão do seu CSV)
-          if (dataInicio.includes('-')) {
-            const dataPura = dataInicio.split('T')[0]; // Remove horas se houver
-            const [ano, mes, dia] = dataPura.split('-');
-            dataInicio = `${dia}/${mes}/${ano}`;
-          }
-          if (dataFim.includes('-')) {
-            const dataPura = dataFim.split('T')[0]; 
-            const [ano, mes, dia] = dataPura.split('-');
-            dataFim = `${dia}/${mes}/${ano}`;
-          }
+            // Inverte a data de americano para brasileiro (se precisar)
+            if (dataInicio.includes('-')) {
+              const [ano, mes, dia] = dataInicio.split('T')[0].split('-');
+              dataInicio = `${dia}/${mes}/${ano}`;
+            }
+            if (dataFim.includes('-')) {
+              const [ano, mes, dia] = dataFim.split('T')[0].split('-');
+              dataFim = `${dia}/${mes}/${ano}`;
+            }
 
-          // 3. Monta a caixinha do jeito exato que o seu painel precisa
-          return {
-            Filial: String(linha.Filial || linha.filial || ''),
-            Supervisor: String(linha.Supervisor || linha.supervisor || ''),
-            Inicio: dataInicio,
-            Fim: dataFim,
-            // O String() garante que mesmo se o banco mandar número puro, vire texto
-            Meta: String(linha.Meta || linha.meta || '0'), 
-            Realizado: String(linha.Realizado || linha.realizado || '0')
-          };
-        });
+            return {
+              Filial: String(linha.Filial || linha.filial || '').trim(),
+              Supervisor: String(linha.Supervisor || linha.supervisor || '').trim(),
+              Inicio: dataInicio,
+              Fim: dataFim,
+              Meta: String(linha.Meta || linha.meta || '0').trim(),
+              Realizado: String(linha.Realizado || linha.realizado || '0').trim()
+            };
+          });
 
-        // Entrega os dados traduzidos para o painel
+        console.log("Dados limpos e traduzidos:", dadosPadronizados.length, "linhas.");
+
+        // Entrega os dados para o painel
         state.weeklyRaw = dadosPadronizados;
         state.monthlyRaw = dadosPadronizados; 
 
-        // Manda o painel desenhar
+        // Manda o painel desenhar tudo
         updateFilterOptions();
         applyFilters();
         renderAll();
