@@ -346,7 +346,7 @@
     const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // =========================================================================
-    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (COM BARREIRA DE FOGO)
+    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (CORRIGIDA)
     // =========================================================================
     async function carregarDadosDoBanco() {
       try {
@@ -363,57 +363,75 @@
         // ---------------------------------------------------------------------
         // 🔄 TRADUTOR BLINDADO COM BARREIRA DE FOGO
         // ---------------------------------------------------------------------
-const dadosPadronizados = data
-  .map((linha, idx) => {
+        const dadosPadronizados = data
+          .map((linha, idx) => {
+            let dataInicio = linha.Inicio || linha.inicio || '';
+            let dataFim = linha.Fim || linha.fim || '';
 
-    let dataInicio = linha.Inicio || linha.inicio || '';
-    let dataFim = linha.Fim || linha.fim || '';
+            // Normaliza formato vindo do banco
+            if (typeof dataInicio === 'string' && dataInicio.includes('-')) {
+              const dataPura = dataInicio.split('T')[0];
+              const [ano, mes, dia] = dataPura.split('-');
+              dataInicio = `${dia}/${mes}/${ano}`;
+            }
 
-    // Normaliza formato vindo do banco
-    if (typeof dataInicio === 'string' && dataInicio.includes('-')) {
-      const dataPura = dataInicio.split('T')[0];
-      const [ano, mes, dia] = dataPura.split('-');
-      dataInicio = `${dia}/${mes}/${ano}`;
+            if (typeof dataFim === 'string' && dataFim.includes('-')) {
+              const dataPura = dataFim.split('T')[0];
+              const [ano, mes, dia] = dataPura.split('-');
+              dataFim = `${dia}/${mes}/${ano}`;
+            }
+
+            const startDate = parseDate(dataInicio);
+            const endDate = parseDate(dataFim);
+
+            const meta = parseNumber(linha.Meta || linha.meta);
+            const realizado = parseNumber(linha.Realizado || linha.realizado);
+
+            return {
+              id: 'W' + idx,
+              loja: String(linha.Filial || linha.filial || '').trim() || 'Sem loja',
+              supervisor: String(linha.Supervisor || linha.supervisor || '').trim() || 'Sem supervisor',
+              start: startDate,
+              end: endDate,
+              periodDate: startDate || endDate,
+              meta,
+              realizado,
+              periodLabel: startDate && endDate 
+                ? `${formatDate(startDate)} a ${formatDate(endDate)}`
+                : (startDate ? formatDate(startDate) : 'Sem período')
+            };
+          })
+          // 🔥 BARREIRA DE FOGO: Tira o lixo e datas zoadas
+          .filter(linha => {
+            return (
+              linha.periodDate instanceof Date &&
+              !isNaN(linha.periodDate) &&
+              linha.meta > 0 
+            );
+          });
+
+        console.log("2. Dados limpos e aprovados:", dadosPadronizados.length, "linhas.");
+
+        // =====================================================================
+        // 🚨 O QUE ESTAVA FALTANDO! (Ligar os dados na TV)
+        // =====================================================================
+        
+        // 1. Guarda os dados limpos nas variáveis do painel
+        state.weeklyRaw = dadosPadronizados;
+        state.monthlyRaw = dadosPadronizados; 
+
+        // 2. Avisa os filtros e manda desenhar os gráficos!
+        updateFilterOptions();
+        applyFilters();
+        renderAll();
+
+        if(el('contextNote')) el('contextNote').textContent = 'Dados do banco carregados com sucesso!';
+
+      } catch (erro) {
+        console.error("Deu ruim ao buscar no Supabase:", erro);
+        if(el('contextNote')) el('contextNote').textContent = 'Erro ao carregar dados da nuvem.';
+      }
     }
-
-    if (typeof dataFim === 'string' && dataFim.includes('-')) {
-      const dataPura = dataFim.split('T')[0];
-      const [ano, mes, dia] = dataPura.split('-');
-      dataFim = `${dia}/${mes}/${ano}`;
-    }
-
-    const startDate = parseDate(dataInicio);
-    const endDate = parseDate(dataFim);
-
-    const meta = parseNumber(linha.Meta || linha.meta);
-    const realizado = parseNumber(linha.Realizado || linha.realizado);
-
-    return {
-      id: 'W' + idx,
-      loja: String(linha.Filial || linha.filial || '').trim() || 'Sem loja',
-      supervisor: String(linha.Supervisor || linha.supervisor || '').trim() || 'Sem supervisor',
-
-      start: startDate,
-      end: endDate,
-      periodDate: startDate || endDate,
-
-      meta,
-      realizado,
-
-      periodLabel: startDate && endDate 
-        ? `${formatDate(startDate)} a ${formatDate(endDate)}`
-        : (startDate ? formatDate(startDate) : 'Sem período')
-    };
-  })
-
-  // 🔥 BARREIRA DE FOGO REAL (correta)
-  .filter(linha => {
-    return (
-      linha.periodDate instanceof Date &&
-      !isNaN(linha.periodDate) &&
-      linha.meta > 0 // opcional: evita lixo
-    );
-  });
     // =========================================================================
     // 3. FAZ O PAINEL LIGAR AUTOMATICAMENTE AO ABRIR A PÁGINA
     // =========================================================================
