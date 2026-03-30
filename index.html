@@ -354,7 +354,7 @@
         if(el('contextNote')) el('contextNote').textContent = 'Carregando dados do banco...';
 
         // Vai na tabela 'metas_vendas' e pega tudo
-        const { data, error } = await supabase
+        const { data, error } = await clienteSupabase
           .from('metas_vendas')
           .select('*');
 
