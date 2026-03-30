@@ -348,24 +348,41 @@
     // =========================================================================
     // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO
     // =========================================================================
+    // =========================================================================
+    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (ATUALIZADA)
+    // =========================================================================
     async function carregarDadosDoBanco() {
       try {
-        // Mostra uma mensagem na tela avisando que está buscando
         if(el('contextNote')) el('contextNote').textContent = 'Carregando dados do banco...';
 
-        // Vai na tabela 'metas_vendas' e pega tudo
         const { data, error } = await clienteSupabase
           .from('metas_vendas')
           .select('*');
 
-        // Se der erro, ele para aqui
         if (error) throw error;
 
-        // Se der certo, ele joga os dados nas variáveis do seu painel!
-        state.weeklyRaw = data;
-        state.monthlyRaw = data; 
+        console.log("Dados puros do banco:", data);
 
-        // Atualiza a tela com os dados novos
+        // ---------------------------------------------------------------------
+        // 🔄 O TRADUTOR: Padronizando as colunas para o seu código entender
+        // ---------------------------------------------------------------------
+        const dadosPadronizados = data.map(linha => {
+          return {
+            // Pega o dado venha ele em maiúsculo (Filial) ou minúsculo (filial)
+            Filial: linha.Filial || linha.filial || '',
+            Supervisor: linha.Supervisor || linha.supervisor || '',
+            Inicio: linha.Inicio || linha.inicio || '',
+            Fim: linha.Fim || linha.fim || '',
+            Meta: linha.Meta || linha.meta || '0',
+            Realizado: linha.Realizado || linha.realizado || '0'
+          };
+        });
+
+        // Em vez de passar o 'data' puro, passamos os nossos dados traduzidos!
+        state.weeklyRaw = dadosPadronizados;
+        state.monthlyRaw = dadosPadronizados; 
+
+        // Manda o painel desenhar
         updateFilterOptions();
         applyFilters();
         renderAll();
@@ -377,7 +394,6 @@
         if(el('contextNote')) el('contextNote').textContent = 'Erro ao carregar dados da nuvem.';
       }
     }
-
     // =========================================================================
     // 3. FAZ O PAINEL LIGAR AUTOMATICAMENTE AO ABRIR A PÁGINA
     // =========================================================================
