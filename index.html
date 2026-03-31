@@ -346,90 +346,104 @@
     const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
 
 // =========================================================================
-    // 2. FUNÇÃO PARA BUSCAR OS DADOS SOZINHO (CORRIGIDA)
+    // 2. FUNÇÃO PARA BUSCAR OS DADOS DO SUPABASE (SEMANAL E MENSAL)
     // =========================================================================
     async function carregarDadosDoBanco() {
       try {
         if(el('contextNote')) el('contextNote').textContent = 'Carregando dados do banco...';
 
-        const { data, error } = await clienteSupabase
-          .from('metas_vendas')
-          .select('*');
+        // 1. Dispara as DUAS buscas na internet ao mesmo tempo! (Muito mais rápido)
+        const [respostaSemanal, respostaMensal] = await Promise.all([
+          clienteSupabase.from('metas_vendas').select('*'),
+          clienteSupabase.from('metas_vendas_mensal').select('*')
+        ]);
 
-        if (error) throw error;
+        // Se alguma das duas falhar, a gente para o código
+        if (respostaSemanal.error) throw respostaSemanal.error;
+        if (respostaMensal.error) throw respostaMensal.error;
 
-        console.log("1. Dados puros recebidos:", data.length, "linhas.");
+        console.log("Dados semanais recebidos:", respostaSemanal.data.length, "linhas.");
+        console.log("Dados mensais recebidos:", respostaMensal.data.length, "linhas.");
 
         // ---------------------------------------------------------------------
-        // 🔄 TRADUTOR BLINDADO COM BARREIRA DE FOGO
+        // 🔄 O TRADUTOR UNIVERSAL (Serve para as duas tabelas!)
         // ---------------------------------------------------------------------
-        const dadosPadronizados = data
+        const traduzirLinha = (linha, idx, prefixo) => {
+          let dataInicio = String(linha.Inicio || linha.inicio || '').trim();
+          let dataFim = String(linha.Fim || linha.fim || '').trim();
+
+          // Inverte as datas se o Supabase mandou no formato americano YYYY-MM-DD
+          if (dataInicio.includes('-')) {
+            const partes = dataInicio.split('T')[0].split('-');
+            if(partes.length === 3) dataInicio = `${partes[2]}/${partes[1]}/${partes[0]}`;
+          }
+          if (dataFim.includes('-')) {
+            const partes = dataFim.split('T')[0].split('-');
+            if(partes.length === 3) dataFim = `${partes[2]}/${partes[1]}/${partes[0]}`;
+          }
+
+          const startDate = parseDate(dataInicio);
+          const endDate = parseDate(dataFim);
+          const periodDate = startDate || endDate;
+
+          return {
+            id: prefixo + idx,
+            loja: String(linha.Filial || linha.filial || '').trim() || 'Sem loja',
+            supervisor: String(linha.Supervisor || linha.supervisor || '').trim() || 'Sem supervisor',
+            start: startDate,
+            end: endDate,
+            periodDate: periodDate,
+            monthDate: periodDate ? new Date(periodDate.getFullYear(), periodDate.getMonth(), 1) : null,
+            
+            // Dados financeiros originais
+            meta: parseNumber(linha.Meta || linha.meta),
+            realizado: parseNumber(linha.Realizado || linha.realizado),
+            
+            // 🔥 OS NOVOS CAMPOS! (Cobrimos várias opções de nome que o Supabase pode ter criado)
+            pedidos: parseNumber(linha.Pedidos || linha.pedidos),
+            metaTM: parseNumber(linha['Meta Ticket Médio'] || linha['meta ticket médio'] || linha.meta_ticket_medio || linha.meta_ticket_médio || 0),
+            
+            periodLabel: startDate && endDate 
+              ? `${formatDate(startDate)} a ${formatDate(endDate)}`
+              : (startDate ? formatDate(startDate) : 'Sem período')
+          };
+        };
+
+        // 2. Passamos os dados SEMANAIS pelo tradutor e barreira de fogo
+        const weeklyPadronizado = respostaSemanal.data
+          .map((linha, idx) => traduzirLinha(linha, idx, 'W'))
+          .filter(linha => linha.periodDate instanceof Date && !isNaN(linha.periodDate) && linha.meta > 0);
+
+        // 3. Passamos os dados MENSAIS pelo tradutor e barreira de fogo
+        const monthlyPadronizado = respostaMensal.data
           .map((linha, idx) => {
-            let dataInicio = linha.Inicio || linha.inicio || '';
-            let dataFim = linha.Fim || linha.fim || '';
-
-            // Normaliza formato vindo do banco
-            if (typeof dataInicio === 'string' && dataInicio.includes('-')) {
-              const dataPura = dataInicio.split('T')[0];
-              const [ano, mes, dia] = dataPura.split('-');
-              dataInicio = `${dia}/${mes}/${ano}`;
-            }
-
-            if (typeof dataFim === 'string' && dataFim.includes('-')) {
-              const dataPura = dataFim.split('T')[0];
-              const [ano, mes, dia] = dataPura.split('-');
-              dataFim = `${dia}/${mes}/${ano}`;
-            }
-
-            const startDate = parseDate(dataInicio);
-            const endDate = parseDate(dataFim);
-
-            const meta = parseNumber(linha.Meta || linha.meta);
-            const realizado = parseNumber(linha.Realizado || linha.realizado);
-
-            return {
-              id: 'W' + idx,
-              loja: String(linha.Filial || linha.filial || '').trim() || 'Sem loja',
-              supervisor: String(linha.Supervisor || linha.supervisor || '').trim() || 'Sem supervisor',
-              start: startDate,
-              end: endDate,
-              periodDate: startDate || endDate,
-              meta,
-              realizado,
-              periodLabel: startDate && endDate 
-                ? `${formatDate(startDate)} a ${formatDate(endDate)}`
-                : (startDate ? formatDate(startDate) : 'Sem período')
-            };
+             const padronizado = traduzirLinha(linha, idx, 'M');
+             // Ajusta o rótulo para ficar bonito na aba mensal (ex: jan/2026)
+             if (padronizado.monthDate) {
+                 padronizado.periodLabel = formatMonth(padronizado.monthDate);
+             }
+             return padronizado;
           })
-          // 🔥 BARREIRA DE FOGO: Tira o lixo e datas zoadas
-          .filter(linha => {
-            return (
-              linha.periodDate instanceof Date &&
-              !isNaN(linha.periodDate) &&
-              linha.meta > 0 
-            );
-          });
-
-        console.log("2. Dados limpos e aprovados:", dadosPadronizados.length, "linhas.");
+          .filter(linha => linha.periodDate instanceof Date && !isNaN(linha.periodDate) && linha.meta > 0);
 
         // =====================================================================
-        // 🚨 O QUE ESTAVA FALTANDO! (Ligar os dados na TV)
+        // 🚨 LIGANDO TUDO NA TELA
         // =====================================================================
         
-        // 1. Guarda os dados limpos nas variáveis do painel
-        state.weeklyRaw = dadosPadronizados;
-        state.monthlyRaw = dadosPadronizados; 
+        // Colocamos os dados separados em cada caixinha correta!
+        state.weeklyRaw = weeklyPadronizado;
+        state.monthlyRaw = monthlyPadronizado; 
 
-        // 2. Avisa os filtros e manda desenhar os gráficos!
+        // Avisa os filtros e desenha o painel
         updateFilterOptions();
         applyFilters();
         renderAll();
 
-        if(el('contextNote')) el('contextNote').textContent = 'Dados do banco carregados com sucesso!';
+        if(el('contextNote')) el('contextNote').textContent = 'Dados do Supabase carregados com sucesso (Semanal e Mensal)!';
 
       } catch (erro) {
         console.error("Deu ruim ao buscar no Supabase:", erro);
-        if(el('contextNote')) el('contextNote').textContent = 'Erro ao carregar dados da nuvem.';
+        if(el('contextNote')) el('contextNote').textContent = 'Erro ao carregar dados da nuvem. Verifique o console.';
       }
     }
     // =========================================================================
