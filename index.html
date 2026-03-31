@@ -4,8 +4,6 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Painel Executivo de Metas</title>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
   <style>
     :root{
       --bg:#0b1020;
@@ -57,7 +55,7 @@
     }
     .filters{
       display:grid;
-      grid-template-columns: 1.15fr 1.15fr 1fr 1fr 1fr auto auto;
+      grid-template-columns: 1.15fr 1.15fr 1fr 1fr auto auto;
       gap:14px;
       padding:16px;
       align-items:end;
@@ -164,7 +162,35 @@
     .pill.good{background:rgba(39,192,125,.12);border-color:rgba(39,192,125,.25)}
     .pill.bad{background:rgba(243,95,111,.12);border-color:rgba(243,95,111,.25)}
     .pill.warn{background:rgba(246,200,95,.12);border-color:rgba(246,200,95,.25)}
+    .pill.excellent{background:#2DC7FF1F;border-color:#2DC7FF;color:#2DC7FF}
+    .hero-logo{height:44px;width:auto;object-fit:contain;filter:brightness(1.05)}
+    .import-row{
+      display:flex;align-items:center;gap:10px;
+      padding:0 16px 14px;
+    }
+    .import-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.07em}
+    .import-btn{
+      display:inline-flex;align-items:center;gap:6px;
+      background:transparent;
+      border:1px solid var(--line);
+      color:var(--muted);
+      border-radius:999px;
+      padding:6px 12px;
+      font-size:12px;
+      cursor:pointer;
+      transition:border-color .15s, color .15s, background .15s;
+    }
+    .import-btn:hover{border-color:#5071c8;color:#cfe0ff;background:rgba(122,162,255,.07)}
     .footer-note{padding:14px 16px;color:var(--muted);font-size:12px}
+    .insight{
+      display:inline-flex;align-items:center;justify-content:center;
+      padding:6px 10px;border-radius:999px;font-size:12px;font-weight:700;border:1px solid transparent;
+      white-space:nowrap;
+    }
+    .insight.meta-high{background:rgba(246,200,95,.12);border-color:rgba(246,200,95,.25);color:var(--warn)}
+    .insight.meta-low{background:rgba(122,162,255,.12);border-color:rgba(122,162,255,.25);color:#cfe0ff}
+    .insight.performance{background:rgba(243,95,111,.12);border-color:rgba(243,95,111,.25);color:var(--bad)}
+    .insight.healthy{background:rgba(39,192,125,.12);border-color:rgba(39,192,125,.25);color:var(--good)}
     .empty{padding:24px 16px;color:var(--muted)}
     @media (max-width:1200px){
       .filters{grid-template-columns:1fr 1fr 1fr 1fr}
@@ -183,12 +209,12 @@
 <body>
   <div class="container">
     <div class="hero">
-      <div>
-        <div class="chip">Página executiva • visão do macro para o micro</div>
-        <h1>Painel de Metas — Semanal e Mensal</h1>
-        <p>Carregue seus arquivos, aplique filtros por período e supervisor e acompanhe meta acumulada, realizado, diferença, aproveitamento e consistência de entrega por supervisor e loja.</p>
+      <div style="display:flex;align-items:center;gap:16px">
+        <img src="img/logo.png" alt="Logo" class="hero-logo">
+        <div>
+          <h1>Painel de Metas — Semanal e Mensal</h1>
+        </div>
       </div>
-      <div class="chip">Versão HTML local</div>
     </div>
 
     <div class="panel">
@@ -206,34 +232,28 @@
           <select id="supervisorFilter"><option value="">Todos</option></select>
         </div>
         <div class="field">
-          <label>Regional</label>
-          <select id="regionalFilter"><option value="">Todas</option></select>
+          <label>Loja</label>
+          <select id="lojaFilter"><option value="">Todas</option></select>
         </div>
-<div class="field">
-          <label>&nbsp;</label>
-          <button id="loadSampleBtn">Carregar exemplo</button>
-        </div>
+
         <div class="field">
           <label>&nbsp;</label>
           <button class="secondary" id="clearBtn">Limpar dados</button>
         </div>
       </div>
 
-      <div class="uploads">
-        <div class="upload-box">
-          <h3>Importar base semanal</h3>
-          <p>Colunas esperadas: Loja, Supervisor, Data Inicial, Data Final, Meta, Realizado. Regional é opcional.</p>
-          <input type="file" id="weeklyFile" accept=".csv" />
-        </div>
-        <div class="upload-box">
-          <h3>Importar base mensal</h3>
-          <p>Colunas esperadas: Loja, Supervisor, Mês, Meta, Realizado. Regional é opcional.</p>
-          <input type="file" id="monthlyFile" accept=".csv" />
-        </div>
-      </div>
-
-      <div class="help">
-        Observação: esta versão HTML funciona de forma 100% local no navegador e importa arquivos em CSV. Se seus dados estiverem em Excel, basta abrir no Excel e salvar cada aba/base como <strong>CSV UTF-8</strong>.
+      <div class="import-row">
+        <span class="import-label">Importar dados</span>
+        <button class="import-btn" id="importWeeklyBtn" title="Adicionar dados semanais via CSV">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 1v8M3.5 5.5 7 9l3.5-3.5M2 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Semanal
+        </button>
+        <button class="import-btn" id="importMonthlyBtn" title="Adicionar dados mensais via CSV">
+          <svg width="13" height="13" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 1v8M3.5 5.5 7 9l3.5-3.5M2 11h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          Mensal
+        </button>
+        <input type="file" id="weeklyFile" accept=".csv" style="display:none">
+        <input type="file" id="monthlyFile" accept=".csv" style="display:none">
       </div>
     </div>
 
@@ -302,7 +322,7 @@
           </div>
         </div>
         <div class="footer-note" id="contextNote">
-          Sem dados carregados. Use os arquivos CSV ou clique em “Carregar exemplo”.
+          Sem dados carregados. Use os arquivos CSV para iniciar a análise.
         </div>
       </div>
     </div>
@@ -321,11 +341,36 @@
         </div>
         <div class="table-wrap" id="weeklyTableWrap"></div>
       </div>
+
+      <div class="panel" id="weeklyDiagnosticPanel" style="display:none;">
+        <div class="section-head">
+          <h2>Análise semana a semana</h2>
+        </div>
+        <div class="footer-note">
+          Leitura sugerida: acompanhe a diferença em reais entre meta e realizado, junto do ticket médio realizado e da diferença percentual sobre a meta de ticket médio.
+        </div>
+        <div class="table-wrap" id="weeklyDiagnosticWrap"></div>
+      </div>
+
+      <div class="panel" id="monthlyDiagnosticPanel" style="display:none;">
+        <div class="section-head">
+          <h2>Análise mês a mês</h2>
+        </div>
+        <div class="footer-note">
+          Leitura sugerida: acompanhe a diferença em reais entre meta e realizado, junto do ticket médio realizado e da diferença percentual sobre a meta de ticket médio no mês fechado.
+        </div>
+        <div class="table-wrap" id="monthlyDiagnosticWrap"></div>
+      </div>
     </div>
   </div>
 
   
   <script>
+    // ─── Supabase config ────────────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://emboolpdpuwugdvypqkk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm9vbHBkcHV3dWdkdnlwcWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MDQyMjUsImV4cCI6MjA5MDQ4MDIyNX0.7Y4b23q-0cdw7oVxmYnPoQNHdnHHEmVdyjCRDKqrd3s';
+    // ────────────────────────────────────────────────────────────────────────────
+
     const state = {
       weeklyRaw: [],
       monthlyRaw: [],
@@ -333,125 +378,6 @@
       filteredMonthly: [],
       currentMode: 'weekly'
     };
-
-// =========================================================================
-    // 1. INÍCIO DA CONEXÃO COM O SUPABASE
-    // =========================================================================
-
-    // Chaves de acesso que você me passou
-    const supabaseUrl = 'https://emboolpdpuwugdvypqkk.supabase.co';
-    const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImVtYm9vbHBkcHV3dWdkdnlwcWtrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ5MDQyMjUsImV4cCI6MjA5MDQ4MDIyNX0.7Y4b23q-0cdw7oVxmYnPoQNHdnHHEmVdyjCRDKqrd3s';
-    
-    // Criando o canal de comunicação com o banco
-    const clienteSupabase = window.supabase.createClient(supabaseUrl, supabaseKey);
-
-// =========================================================================
-    // 2. FUNÇÃO PARA BUSCAR OS DADOS DO SUPABASE (SEMANAL E MENSAL)
-    // =========================================================================
-    async function carregarDadosDoBanco() {
-      try {
-        if(el('contextNote')) el('contextNote').textContent = 'Carregando dados do banco...';
-
-        // 1. Dispara as DUAS buscas na internet ao mesmo tempo! (Muito mais rápido)
-        const [respostaSemanal, respostaMensal] = await Promise.all([
-          clienteSupabase.from('metas_vendas').select('*'),
-          clienteSupabase.from('metas_vendas_mensal').select('*')
-        ]);
-
-        // Se alguma das duas falhar, a gente para o código
-        if (respostaSemanal.error) throw respostaSemanal.error;
-        if (respostaMensal.error) throw respostaMensal.error;
-
-        console.log("Dados semanais recebidos:", respostaSemanal.data.length, "linhas.");
-        console.log("Dados mensais recebidos:", respostaMensal.data.length, "linhas.");
-
-        // ---------------------------------------------------------------------
-        // 🔄 O TRADUTOR UNIVERSAL (Serve para as duas tabelas!)
-        // ---------------------------------------------------------------------
-        const traduzirLinha = (linha, idx, prefixo) => {
-          let dataInicio = String(linha.Inicio || linha.inicio || '').trim();
-          let dataFim = String(linha.Fim || linha.fim || '').trim();
-
-          // Inverte as datas se o Supabase mandou no formato americano YYYY-MM-DD
-          if (dataInicio.includes('-')) {
-            const partes = dataInicio.split('T')[0].split('-');
-            if(partes.length === 3) dataInicio = `${partes[2]}/${partes[1]}/${partes[0]}`;
-          }
-          if (dataFim.includes('-')) {
-            const partes = dataFim.split('T')[0].split('-');
-            if(partes.length === 3) dataFim = `${partes[2]}/${partes[1]}/${partes[0]}`;
-          }
-
-          const startDate = parseDate(dataInicio);
-          const endDate = parseDate(dataFim);
-          const periodDate = startDate || endDate;
-
-          return {
-            id: prefixo + idx,
-            loja: String(linha.Filial || linha.filial || '').trim() || 'Sem loja',
-            supervisor: String(linha.Supervisor || linha.supervisor || '').trim() || 'Sem supervisor',
-            start: startDate,
-            end: endDate,
-            periodDate: periodDate,
-            monthDate: periodDate ? new Date(periodDate.getFullYear(), periodDate.getMonth(), 1) : null,
-            
-            // Dados financeiros originais
-            meta: parseNumber(linha.Meta || linha.meta),
-            realizado: parseNumber(linha.Realizado || linha.realizado),
-            
-            // 🔥 OS NOVOS CAMPOS! (Cobrimos várias opções de nome que o Supabase pode ter criado)
-            pedidos: parseNumber(linha.Pedidos || linha.pedidos),
-            metaTM: parseNumber(linha['Meta Ticket Médio'] || linha['meta ticket médio'] || linha.meta_ticket_medio || linha.meta_ticket_médio || 0),
-            
-            periodLabel: startDate && endDate 
-              ? `${formatDate(startDate)} a ${formatDate(endDate)}`
-              : (startDate ? formatDate(startDate) : 'Sem período')
-          };
-        };
-
-        // 2. Passamos os dados SEMANAIS pelo tradutor e barreira de fogo
-        const weeklyPadronizado = respostaSemanal.data
-          .map((linha, idx) => traduzirLinha(linha, idx, 'W'))
-          .filter(linha => linha.periodDate instanceof Date && !isNaN(linha.periodDate) && linha.meta > 0);
-
-        // 3. Passamos os dados MENSAIS pelo tradutor e barreira de fogo
-        const monthlyPadronizado = respostaMensal.data
-          .map((linha, idx) => {
-             const padronizado = traduzirLinha(linha, idx, 'M');
-             // Ajusta o rótulo para ficar bonito na aba mensal (ex: jan/2026)
-             if (padronizado.monthDate) {
-                 padronizado.periodLabel = formatMonth(padronizado.monthDate);
-             }
-             return padronizado;
-          })
-          .filter(linha => linha.periodDate instanceof Date && !isNaN(linha.periodDate) && linha.meta > 0);
-
-        // =====================================================================
-        // 🚨 LIGANDO TUDO NA TELA
-        // =====================================================================
-        
-        // Colocamos os dados separados em cada caixinha correta!
-        state.weeklyRaw = weeklyPadronizado;
-        state.monthlyRaw = monthlyPadronizado; 
-
-        // Avisa os filtros e desenha o painel
-        updateFilterOptions();
-        applyFilters();
-        renderAll();
-
-        if(el('contextNote')) el('contextNote').textContent = 'Dados do Supabase carregados com sucesso (Semanal e Mensal)!';
-
-      } catch (erro) {
-        console.error("Deu ruim ao buscar no Supabase:", erro);
-        if(el('contextNote')) el('contextNote').textContent = 'Erro ao carregar dados da nuvem. Verifique o console.';
-      }
-    }
-    // =========================================================================
-    // 3. FAZ O PAINEL LIGAR AUTOMATICAMENTE AO ABRIR A PÁGINA
-    // =========================================================================
-    window.addEventListener('DOMContentLoaded', () => {
-      carregarDadosDoBanco();
-    });
 
     const el = (id) => document.getElementById(id);
 
@@ -610,7 +536,7 @@
 
     function mapWeekly(rows){
       return rows.map((r, idx) => {
-        const start = parseDate(extractField(r, ['data inicial','inicio','data inicio']));
+        const start = parseDate(extractField(r, ['data inicial','inicio','data inicio','início']));
         const end = parseDate(extractField(r, ['data final','fim','data fim']));
         return {
           id: 'W' + idx,
@@ -621,6 +547,8 @@
           periodDate: start || end,
           meta: parseNumber(extractField(r, ['meta'])),
           realizado: parseNumber(extractField(r, ['realizado','faturamento','realizado acumulado'])),
+          pedidos: parseNumber(extractField(r, ['pedidos'])),
+          metaTM: parseNumber(extractField(r, ['meta tm','meta ticket medio','meta de ticket medio','meta ticket médio','meta ticket medio'])),
           periodLabel: start && end ? `${formatDate(start)} a ${formatDate(end)}` : (start ? formatDate(start) : 'Sem período')
         };
       }).filter(r => r.periodDate);
@@ -628,28 +556,120 @@
 
     function mapMonthly(rows){
       return rows.map((r, idx) => {
-        const m = parseMonthToDate(extractField(r, ['mes','mês','ano mes','anomes']));
+        const start = parseDate(extractField(r, ['data inicial','inicio','data inicio','início']));
+        const end = parseDate(extractField(r, ['data final','fim','data fim']));
+        const periodDate = start || end;
+
         return {
           id: 'M' + idx,
           loja: extractField(r, ['loja','filial']) || 'Sem loja',
           supervisor: extractField(r, ['supervisor']) || 'Sem supervisor',
-          monthDate: m,
-          periodDate: m,
+          start,
+          end,
+          periodDate,
+          monthDate: periodDate ? new Date(periodDate.getFullYear(), periodDate.getMonth(), 1) : null,
           meta: parseNumber(extractField(r, ['meta'])),
           realizado: parseNumber(extractField(r, ['realizado','faturamento','realizado acumulado'])),
-          periodLabel: m ? formatMonth(m) : 'Sem período'
+          pedidos: parseNumber(extractField(r, ['pedidos'])),
+          metaTM: parseNumber(extractField(r, ['meta tm','meta ticket medio','meta ticket médio','meta de ticket medio','meta de ticket médio'])),
+          periodLabel: start && end ? `${formatDate(start)} a ${formatDate(end)}` : (periodDate ? formatMonth(periodDate) : 'Sem período')
         };
       }).filter(r => r.periodDate);
     }
 
-    function updateFilterOptions(){
-      const supSet = new Set([...state.weeklyRaw, ...state.monthlyRaw].map(r => r.supervisor).filter(Boolean));
-      const sup = el('supervisorFilter');
-      const supVal = sup.value;
-      sup.innerHTML = '<option value="">Todos</option>' + [...supSet].sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
-      sup.value = [...sup.options].some(o => o.value === supVal) ? supVal : '';
+    // ─── Supabase helpers ────────────────────────────────────────────────────────
+    async function fetchSupabase(table){
+      const res = await fetch(`${SUPABASE_URL}/rest/v1/${table}?select=*&limit=10000`, {
+        headers: {
+          'apikey': SUPABASE_KEY,
+          'Authorization': `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      if(!res.ok) throw new Error(`Supabase ${table}: ${res.status}`);
+      return res.json();
+    }
 
-      const allDates = [...state.weeklyRaw.map(r => r.periodDate), ...state.monthlyRaw.map(r => r.periodDate)]
+    function supabaseRowToNormalized(r, isMonthly){
+      // Translate Supabase column names to the normalized keys extractField expects
+      return {
+        'filial':  String(r.filial  || r.loja || ''),
+        'supervisor': String(r.supervisor || ''),
+        'inicio':  String(r.inicio  || r['data inicial'] || r.data_inicial || ''),
+        'fim':     String(r.fim     || r['data final']   || r.data_final   || ''),
+        'meta':    String(r.meta    || 0),
+        'realizado': String(r.realizado || 0),
+        'pedidos': String(r.pedidos || 0),
+        'meta tm': String(r.meta_ticket_medio || r.meta_tm || r['meta ticket medio'] || r['meta ticket médio'] || 0),
+      };
+    }
+
+    async function loadFromSupabase(){
+      if(!SUPABASE_URL || SUPABASE_URL.includes('SEU_PROJECT')){
+        el('contextNote').textContent = 'Configure SUPABASE_URL e SUPABASE_KEY no topo do script para carregar os dados automaticamente.';
+        renderAll();
+        return;
+      }
+      el('contextNote').textContent = 'Carregando dados do Supabase…';
+      try {
+        const [weeklyData, monthlyData] = await Promise.all([
+          fetchSupabase('metas_vendas'),
+          fetchSupabase('metas_vendas_mensal')
+        ]);
+
+        if(Array.isArray(weeklyData) && weeklyData.length){
+          state.weeklyRaw = mapWeekly(weeklyData.map(r => supabaseRowToNormalized(r, false)));
+        }
+        if(Array.isArray(monthlyData) && monthlyData.length){
+          state.monthlyRaw = mapMonthly(monthlyData.map(r => supabaseRowToNormalized(r, true)));
+        }
+
+        updateFilterOptions();
+        applyFilters();
+      } catch(err){
+        console.error(err);
+        el('contextNote').textContent = `Erro ao carregar Supabase: ${err.message}`;
+        renderAll();
+      }
+    }
+    // ────────────────────────────────────────────────────────────────────────────
+
+    // ─── Additive merge (never overwrites existing records) ─────────────────────
+    function makeRecordKey(r){
+      const s = r.start ? isoDate(r.start) : '';
+      const e = r.end   ? isoDate(r.end)   : '';
+      return `${r.loja}|||${r.supervisor}|||${s}|||${e}`;
+    }
+
+    function mergeRecords(existing, incoming){
+      const keys = new Set(existing.map(makeRecordKey));
+      const fresh = incoming.filter(r => !keys.has(makeRecordKey(r)));
+      return [...existing, ...fresh];
+    }
+    // ────────────────────────────────────────────────────────────────────────────
+
+    function updateFilterOptions(){
+      const sup = el('supervisorFilter');
+      const loja = el('lojaFilter');
+
+      const currentSup = sup.value;
+      const currentLoja = loja.value;
+
+      const allRecords = [...state.weeklyRaw, ...state.monthlyRaw];
+
+      const supSet = new Set(allRecords.map(r => r.supervisor).filter(Boolean));
+      sup.innerHTML = '<option value="">Todos</option>' + [...supSet].sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      sup.value = [...sup.options].some(o => o.value === currentSup) ? currentSup : '';
+
+      const lojaBase = sup.value
+        ? allRecords.filter(r => r.supervisor === sup.value)
+        : allRecords;
+
+      const lojaSet = new Set(lojaBase.map(r => r.loja).filter(Boolean));
+      loja.innerHTML = '<option value="">Todas</option>' + [...lojaSet].sort().map(v => `<option value="${escapeHtml(v)}">${escapeHtml(v)}</option>`).join('');
+      loja.value = [...loja.options].some(o => o.value === currentLoja) ? currentLoja : '';
+
+      const allDates = allRecords
+        .map(r => r.periodDate)
         .filter(Boolean)
         .sort((a,b)=>a-b);
 
@@ -663,11 +683,13 @@
       const from = parseDate(el('dateFrom').value);
       const to = parseDate(el('dateTo').value);
       const supervisor = el('supervisorFilter').value;
+      const loja = el('lojaFilter').value;
 
       const filterFn = (r) => {
         const dateOk = (!from || r.periodDate >= from) && (!to || r.periodDate <= to);
         const supOk = !supervisor || r.supervisor === supervisor;
-        return dateOk && supOk;
+        const lojaOk = !loja || r.loja === loja;
+        return dateOk && supOk && lojaOk;
       };
 
       state.filteredWeekly = state.weeklyRaw.filter(filterFn);
@@ -727,7 +749,7 @@
 
     function metricClass(value){
       const v = Number(value||0);
-      return v >= 1 ? 'good' : v >= .9 ? 'warn' : 'bad';
+      return v > 1.1 ? 'excellent' : v >= 1 ? 'good' : v >= .9 ? 'warn' : 'bad';
     }
 
     function getActiveRecords(){
@@ -773,6 +795,160 @@
       const to = el('dateTo').value ? formatDate(parseDate(el('dateTo').value)) : 'fim';
       const sup = el('supervisorFilter').value || 'todos os supervisores';
       el('contextNote').textContent = `Período analisado: ${from} até ${to}. Filtro atual: ${sup}. Visão ativa: ${modeSingular}.`;
+    }
+
+
+    function averageMetaByStore(records){
+      const map = new Map();
+      records.forEach(r => {
+        const key = r.loja;
+        if(!map.has(key)) map.set(key, {sum:0, count:0});
+        const row = map.get(key);
+        row.sum += r.meta;
+        row.count += 1;
+      });
+      const out = new Map();
+      map.forEach((v,k) => out.set(k, v.count ? v.sum / v.count : 0));
+      return out;
+    }
+
+    function getWeeklyDiagnosticRows(records){
+      return [...records]
+        .sort((a,b) => (a.loja.localeCompare(b.loja) || a.periodDate - b.periodDate))
+        .map(r => {
+          const pctEntregue = r.meta ? r.realizado / r.meta : 0;
+          const diferenca = r.realizado - r.meta;
+          const pedidos = Number(r.pedidos || 0);
+          const metaTM = Number(r.metaTM || 0);
+          const ticketMedioRealizado = pedidos > 0 ? r.realizado / pedidos : 0;
+          const diferencaPctTM = metaTM > 0 ? (ticketMedioRealizado / metaTM) - 1 : 0;
+
+          return {
+            loja: r.loja,
+            semana: r.periodLabel,
+            meta: r.meta,
+            realizado: r.realizado,
+            pctEntregue,
+            diferenca,
+            pedidos,
+            ticketMedioRealizado,
+            metaTM,
+            diferencaPctTM
+          };
+        });
+    }
+
+
+    function getMonthlyDiagnosticRows(records){
+      return [...records]
+        .sort((a,b) => (a.loja.localeCompare(b.loja) || a.periodDate - b.periodDate))
+        .map(r => {
+          const pctEntregue = r.meta ? r.realizado / r.meta : 0;
+          const diferenca = r.realizado - r.meta;
+          const pedidos = Number(r.pedidos || 0);
+          const metaTM = Number(r.metaTM || 0);
+          const ticketMedioRealizado = pedidos > 0 ? r.realizado / pedidos : 0;
+          const diferencaPctTM = metaTM > 0 ? (ticketMedioRealizado / metaTM) - 1 : 0;
+
+          return {
+            loja: r.loja,
+            mes: formatMonth(r.periodDate).replace('.', ''),
+            meta: r.meta,
+            realizado: r.realizado,
+            pctEntregue,
+            diferenca,
+            pedidos,
+            ticketMedioRealizado,
+            metaTM,
+            diferencaPctTM
+          };
+        });
+    }
+
+    function renderMonthlyDiagnostic(records){
+      const container = el('monthlyDiagnosticWrap');
+      if(!records.length){
+        container.innerHTML = '<div class="empty">Nenhum dado mensal encontrado para os filtros aplicados.</div>';
+        return;
+      }
+
+      const rows = getMonthlyDiagnosticRows(records);
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Filial</th>
+              <th>Mês</th>
+              <th class="right">Meta</th>
+              <th class="right">Faturamento realizado</th>
+              <th class="right">Diferença</th>
+              <th class="right">% entregue</th>
+              <th class="right">Meta TM</th>
+              <th class="right">TM Realizado</th>
+              <th class="right">Diferença % TM</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${escapeHtml(r.loja)}</td>
+                <td>${escapeHtml(r.mes)}</td>
+                <td class="right">${brl(r.meta)}</td>
+                <td class="right">${brl(r.realizado)}</td>
+                <td class="right ${r.diferenca >= 0 ? 'good' : 'bad'}">${brl(r.diferenca)}</td>
+                <td class="right"><span class="pill ${metricClass(r.pctEntregue)}">${pct(r.pctEntregue)}</span></td>
+                <td class="right">${brl(r.metaTM)}</td>
+                <td class="right">${brl(r.ticketMedioRealizado)}</td>
+                <td class="right ${r.diferencaPctTM >= 0 ? 'good' : 'bad'}">${pct(r.diferencaPctTM)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = html;
+    }
+
+    function renderWeeklyDiagnostic(records){
+      const container = el('weeklyDiagnosticWrap');
+      if(!records.length){
+        container.innerHTML = '<div class="empty">Nenhum dado semanal encontrado para os filtros aplicados.</div>';
+        return;
+      }
+
+      const rows = getWeeklyDiagnosticRows(records);
+      const html = `
+        <table>
+          <thead>
+            <tr>
+              <th>Filial</th>
+              <th>Semana</th>
+              <th class="right">Meta</th>
+              <th class="right">Faturamento realizado</th>
+              <th class="right">Diferença</th>
+              <th class="right">% entregue</th>
+              <th class="right">Meta TM</th>
+              <th class="right">TM Realizado</th>
+              <th class="right">Diferença % TM</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${rows.map(r => `
+              <tr>
+                <td>${escapeHtml(r.loja)}</td>
+                <td>${escapeHtml(r.semana)}</td>
+                <td class="right">${brl(r.meta)}</td>
+                <td class="right">${brl(r.realizado)}</td>
+                <td class="right ${r.diferenca >= 0 ? 'good' : 'bad'}">${brl(r.diferenca)}</td>
+                <td class="right"><span class="pill ${metricClass(r.pctEntregue)}">${pct(r.pctEntregue)}</span></td>
+                <td class="right">${brl(r.metaTM)}</td>
+                <td class="right">${brl(r.ticketMedioRealizado)}</td>
+                <td class="right ${r.diferencaPctTM >= 0 ? 'good' : 'bad'}">${pct(r.diferencaPctTM)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `;
+      container.innerHTML = html;
     }
 
     function renderTable(containerId, records, isWeekly){
@@ -932,8 +1108,28 @@
 
     function renderAll(){
       renderCards();
-      renderTable('monthlyTableWrap', state.filteredMonthly, false);
-      renderTable('weeklyTableWrap', state.filteredWeekly, true);
+
+      const monthlyPanel = el('monthlyTableWrap').closest('.panel');
+      const weeklyPanel = el('weeklyTableWrap').closest('.panel');
+      const weeklyDiagnosticPanel = el('weeklyDiagnosticPanel');
+      const monthlyDiagnosticPanel = el('monthlyDiagnosticPanel');
+
+      if(state.currentMode === 'monthly'){
+        monthlyPanel.style.display = '';
+        weeklyPanel.style.display = 'none';
+        weeklyDiagnosticPanel.style.display = 'none';
+        monthlyDiagnosticPanel.style.display = '';
+        renderTable('monthlyTableWrap', state.filteredMonthly, false);
+        renderMonthlyDiagnostic(state.filteredMonthly);
+      } else {
+        weeklyPanel.style.display = '';
+        monthlyPanel.style.display = 'none';
+        weeklyDiagnosticPanel.style.display = '';
+        monthlyDiagnosticPanel.style.display = 'none';
+        renderTable('weeklyTableWrap', state.filteredWeekly, true);
+        renderWeeklyDiagnostic(state.filteredWeekly);
+      }
+
       drawChart(getActiveRecords(), state.currentMode);
     }
 
@@ -946,64 +1142,43 @@
         .replace(/'/g,'&#039;');
     }
 
-    function loadSampleData(){
-      const weeklySample = [
-        {loja:'Moema', supervisor:'Benatti', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:180000, realizado:192000, periodLabel:'02/03/2026 a 08/03/2026'},
-        {loja:'Moema', supervisor:'Benatti', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:185000, realizado:176000, periodLabel:'09/03/2026 a 15/03/2026'},
-        {loja:'Tatuapé', supervisor:'Benatti', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:165000, realizado:171000, periodLabel:'02/03/2026 a 08/03/2026'},
-        {loja:'Tatuapé', supervisor:'Benatti', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:170000, realizado:181000, periodLabel:'09/03/2026 a 15/03/2026'},
-        {loja:'Campinas', supervisor:'Ícaro', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:210000, realizado:198000, periodLabel:'02/03/2026 a 08/03/2026'},
-        {loja:'Campinas', supervisor:'Ícaro', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:212000, realizado:225000, periodLabel:'09/03/2026 a 15/03/2026'},
-        {loja:'Sorocaba', supervisor:'Ícaro', start:new Date('2026-03-02'), end:new Date('2026-03-08'), periodDate:new Date('2026-03-02'), meta:152000, realizado:149000, periodLabel:'02/03/2026 a 08/03/2026'},
-        {loja:'Sorocaba', supervisor:'Ícaro', start:new Date('2026-03-09'), end:new Date('2026-03-15'), periodDate:new Date('2026-03-09'), meta:158000, realizado:161000, periodLabel:'09/03/2026 a 15/03/2026'}
-      ];
-
-      const monthlySample = [
-        {loja:'Moema', supervisor:'Benatti', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:720000, realizado:738000, periodLabel:'jan/2026'},
-        {loja:'Moema', supervisor:'Benatti', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:690000, realizado:674000, periodLabel:'fev/2026'},
-        {loja:'Tatuapé', supervisor:'Benatti', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:645000, realizado:662000, periodLabel:'jan/2026'},
-        {loja:'Tatuapé', supervisor:'Benatti', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:652000, realizado:670000, periodLabel:'fev/2026'},
-        {loja:'Campinas', supervisor:'Ícaro', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:830000, realizado:804000, periodLabel:'jan/2026'},
-        {loja:'Campinas', supervisor:'Ícaro', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:810000, realizado:835000, periodLabel:'fev/2026'},
-        {loja:'Sorocaba', supervisor:'Ícaro', monthDate:new Date('2026-01-01'), periodDate:new Date('2026-01-01'), meta:590000, realizado:571000, periodLabel:'jan/2026'},
-        {loja:'Sorocaba', supervisor:'Ícaro', monthDate:new Date('2026-02-01'), periodDate:new Date('2026-02-01'), meta:610000, realizado:622000, periodLabel:'fev/2026'}
-      ];
-
-      state.weeklyRaw = weeklySample;
-      state.monthlyRaw = monthlySample;
-      state.currentMode = 'weekly';
-      document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === state.currentMode));
-      el('dateFrom').value = '2026-01-01';
-      el('dateTo').value = '2026-03-31';
-      updateFilterOptions();
-      applyFilters();
-    }
-
     async function handleCsvUpload(file, type){
       const text = await file.text();
       const rows = csvToRows(text);
       if(type === 'weekly'){
-        state.weeklyRaw = mapWeekly(rows);
+        state.weeklyRaw = mergeRecords(state.weeklyRaw, mapWeekly(rows));
       } else {
-        state.monthlyRaw = mapMonthly(rows);
+        state.monthlyRaw = mergeRecords(state.monthlyRaw, mapMonthly(rows));
       }
       updateFilterOptions();
       applyFilters();
     }
 
+    // Discrete import buttons → trigger hidden file inputs
+    el('importWeeklyBtn').addEventListener('click', () => el('weeklyFile').click());
+    el('importMonthlyBtn').addEventListener('click', () => el('monthlyFile').click());
+
     el('weeklyFile').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if(file) handleCsvUpload(file, 'weekly');
+      e.target.value = '';
     });
 
     el('monthlyFile').addEventListener('change', (e) => {
       const file = e.target.files[0];
       if(file) handleCsvUpload(file, 'monthly');
+      e.target.value = '';
     });
 
-    ['dateFrom','dateTo','supervisorFilter'].forEach(id => {
-      el(id).addEventListener('change', applyFilters);
+    el('dateFrom').addEventListener('change', applyFilters);
+    el('dateTo').addEventListener('change', applyFilters);
+
+    el('supervisorFilter').addEventListener('change', () => {
+      updateFilterOptions();
+      applyFilters();
     });
+
+    el('lojaFilter').addEventListener('change', applyFilters);
 
     document.querySelectorAll('.tab').forEach(tab => {
       tab.addEventListener('click', () => {
@@ -1013,25 +1188,22 @@
       });
     });
 
-    el('loadSampleBtn').addEventListener('click', loadSampleData);
-
-    el('clearBtn').addEventListener('click', () => {
+    el('clearBtn').addEventListener('click', async () => {
       state.weeklyRaw = [];
       state.monthlyRaw = [];
       state.filteredWeekly = [];
       state.filteredMonthly = [];
       state.currentMode = 'weekly';
-      el('weeklyFile').value = '';
-      el('monthlyFile').value = '';
       el('dateFrom').value = '';
       el('dateTo').value = '';
       document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.mode === state.currentMode));
       updateFilterOptions();
       renderAll();
-      el('contextNote').textContent = 'Dados limpos. Carregue novas bases para continuar.';
+      await loadFromSupabase();
     });
 
-    renderAll();
+    // Init: load from Supabase on page open
+    loadFromSupabase();
   </script>
 
 </body>
