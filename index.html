@@ -832,16 +832,40 @@
       return out;
     }
 
+    // Constrói índice de metaTM mensal por (loja + ano-mês) para usar no semanal
+    function buildMonthlyTMIndex(){
+      const idx = new Map();
+      state.monthlyRaw.forEach(r => {
+        if(!r.periodDate) return;
+        const key = `${r.loja}|||${monthKey(r.periodDate)}`;
+        // se já existe, usa a com maior metaTM (evita duplicata)
+        if(!idx.has(key) || r.metaTM > idx.get(key)){
+          idx.set(key, r.metaTM);
+        }
+      });
+      return idx;
+    }
+
     function getWeeklyDiagnosticRows(records){
+      const tmIdx = buildMonthlyTMIndex();
       return [...records]
         .sort((a,b) => (a.loja.localeCompare(b.loja) || a.periodDate - b.periodDate))
         .map(r => {
           const pctEntregue = r.meta ? r.realizado / r.meta : 0;
           const diferenca = r.realizado - r.meta;
           const pedidos = Number(r.pedidos || 0);
-          const metaTM = Number(r.metaTM || 0);
-          const ticketMedioRealizado = pedidos > 0 ? r.realizado / pedidos : 0;
-          const diferencaPctTM = metaTM > 0 ? (ticketMedioRealizado / metaTM) - 1 : 0;
+
+          // Tenta usar metaTM da própria linha; se zero, busca no índice mensal
+          let metaTM = Number(r.metaTM || 0);
+          if(metaTM === 0 && r.periodDate){
+            const mk = `${r.loja}|||${monthKey(r.periodDate)}`;
+            metaTM = tmIdx.get(mk) || 0;
+          }
+
+          const ticketMedioRealizado = pedidos > 0 ? r.realizado / pedidos : null;
+          const diferencaPctTM = (metaTM > 0 && ticketMedioRealizado !== null)
+            ? (ticketMedioRealizado / metaTM) - 1
+            : null;
 
           return {
             loja: r.loja,
@@ -936,6 +960,8 @@
       }
 
       const rows = getWeeklyDiagnosticRows(records);
+      const dash = `<span style="color:var(--muted)">—</span>`;
+
       const html = `
         <table>
           <thead>
@@ -960,9 +986,9 @@
                 <td class="right">${brl(r.realizado)}</td>
                 <td class="right ${r.diferenca >= 0 ? 'good' : 'bad'}">${brl(r.diferenca)}</td>
                 <td class="right"><span class="pill ${metricClass(r.pctEntregue)}">${pct(r.pctEntregue)}</span></td>
-                <td class="right">${brl(r.metaTM)}</td>
-                <td class="right">${brl(r.ticketMedioRealizado)}</td>
-                <td class="right ${r.diferencaPctTM >= 0 ? 'good' : 'bad'}">${pct(r.diferencaPctTM)}</td>
+                <td class="right">${r.metaTM > 0 ? brl(r.metaTM) : dash}</td>
+                <td class="right">${r.ticketMedioRealizado !== null ? brl(r.ticketMedioRealizado) : dash}</td>
+                <td class="right ${r.diferencaPctTM !== null ? (r.diferencaPctTM >= 0 ? 'good' : 'bad') : ''}">${r.diferencaPctTM !== null ? pct(r.diferencaPctTM) : dash}</td>
               </tr>
             `).join('')}
           </tbody>
